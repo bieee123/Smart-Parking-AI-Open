@@ -1,0 +1,51 @@
+### ================================================================
+### Smart Parking — Executive Summary API Tests
+### ================================================================
+### Run with: VS Code REST Client / Thunder Client / curl
+### Ensure backend is running: cd backend && node index.js
+### ================================================================
+
+@base = http://localhost:8000/api
+@contentType = application/json
+
+# ═══════════════════════════════════════════════════════════════
+# 1. EXECUTIVE SUMMARY
+# ═══════════════════════════════════════════════════════════════
+
+### 1a. GET /api/analytics/executive-summary — Full summary
+GET {{base}}/analytics/executive-summary
+
+### Expected: 200
+### {
+###   "success": true,
+###   "generated_at": "...",
+###   "system_status": "healthy|moderate|warning|critical",
+###   "health_score": 0-100,
+###   "data": {
+###     "occupancy": { ... },
+###     "predictions": { ... },
+###     "violations": { ... },
+###     "recommendations": [ ... ]
+###   },
+###   "metadata": { ... }
+### }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 2. INDIVIDUAL ANALYTICS ENDPOINTS (for comparison)
+# ═══════════════════════════════════════════════════════════════
+
+### 2a. GET /api/analytics/efficiency/slots — Live slot efficiency
+GET {{base}}/analytics/efficiency/slots
+
+### 2b. GET /api/analytics/occupancy/trends — Occupancy trends
+GET {{base}}/analytics/occupancy/trends?range=1d
+
+### 2c. GET /api/analytics/bottlenecks — Bottleneck detection
+GET {{base}}/analytics/bottlenecks
+
+### 2d. GET /api/analytics/violation/hotspots — Violation hotspots
+GET {{base}}/analytics/violation/hotspots?limit=5
+
+### 2e. GET /api/analytics/efficiency — System efficiency
+GET {{base}}/analytics/efficiency

@@ -1,0 +1,99 @@
+### ================================================
+###  Smart Parking — AI Integration Test Suite
+###  Use with VS Code REST Client extension or similar
+### ================================================
+
+### 1. Login (get token for protected routes)
+# @name login
+POST http://localhost:8000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "AdminPassword123"
+}
+
+### Extract token from login response
+@token = {{login.response.body.data.token}}
+
+
+### ================================================
+###  AI Pass-Through Routes (via Backend)
+### ================================================
+
+### 2. AI Health Check (via backend)
+GET http://localhost:8000/api/ai/health
+
+
+### 3. Predict Demand (via backend)
+POST http://localhost:8000/api/ai/predict
+Content-Type: application/json
+
+{
+  "hour": 14,
+  "horizon": 5
+}
+
+
+### ================================================
+###  Parking Detect Route (via Backend → AI)
+### ================================================
+
+### 4. Detect Vehicle + Plate (requires auth)
+# Uses a minimal 1x1 red JPEG as base64
+POST http://localhost:8000/api/parking/detect
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "imageBase64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMCwsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q=="
+}
+
+
+### 5. Detect — Missing imageBase64 (should return 400)
+POST http://localhost:8000/api/parking/detect
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{}
+
+
+### 6. Detect — No auth token (should return 401)
+POST http://localhost:8000/api/parking/detect
+Content-Type: application/json
+
+{
+  "imageBase64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMCwsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q=="
+}
+
+
+### ================================================
+###  Direct AI Microservice Calls (port 9000)
+### ================================================
+
+### 7. Direct AI Health
+GET http://localhost:9000/ai/health
+
+
+### 8. Direct LPR Recognize (base64 form)
+POST http://localhost:9000/ai/lpr/recognize
+Content-Type: application/x-www-form-urlencoded
+
+image_b64=/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMCwsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==
+
+
+### 9. Direct Vehicle Classification (base64 form)
+POST http://localhost:9000/ai/vehicle/classify
+Content-Type: application/x-www-form-urlencoded
+
+image_b64=/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMCwsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==
+
+
+### 10. Direct Demand Prediction
+POST http://localhost:9000/ai/predict/demand
+Content-Type: application/json
+
+{
+  "hour": 14,
+  "horizon": 5
+}

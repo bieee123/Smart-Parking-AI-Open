@@ -1,0 +1,330 @@
+### ================================================================
+### Smart Parking — Policy Simulator Test Collection
+### ================================================================
+### Run with:
+###   - VS Code REST Client extension
+###   - Thunder Client
+###   - curl (copy individual requests)
+###
+### Ensure backend is running: cd backend && node index.js
+### ================================================================
+
+@base = http://localhost:8000/api
+@contentType = application/json
+
+# ═══════════════════════════════════════════════════════════════
+# 1. VIEW RULES
+# ═══════════════════════════════════════════════════════════════
+
+### 1a. GET /api/simulator/rules — View all rule configuration
+GET {{base}}/simulator/rules
+
+### Expected: 200, { success: true, rules: { occupancy, traffic, violations, ... }, priority_levels }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 2. SINGLE-AREA SIMULATIONS
+# ═══════════════════════════════════════════════════════════════
+
+### 2a. Low Occupancy — No action needed
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "area": "A",
+  "occupancy": 35,
+  "traffic": 40,
+  "violations": 1,
+  "capacity": 200
+}
+
+### Expected: 200, status "ok", occupancy_status "underutilized", suggestions include "suggest_load_shift"
+
+
+### 2b. Optimal Range — Normal operation
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "area": "B",
+  "occupancy": 70,
+  "traffic": 80,
+  "violations": 0,
+  "capacity": 200
+}
+
+### Expected: 200, occupancy_status "optimal", efficiency_score > 0.3, no critical suggestions
+
+
+### 2c. High Occupancy — Approaching capacity
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "area": "A",
+  "occupancy": 88,
+  "traffic": 150,
+  "violations": 3,
+  "capacity": 200,
+  "vehicles_entering": 25,
+  "vehicles_leaving": 10
+}
+
+### Expected: 200, occupancy_status "high", action "prepare_reroute", efficiency_score low
+
+
+### 2d. Full Capacity — Immediate reroute
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "area": "C",
+  "occupancy": 97,
+  "traffic": 200,
+  "violations": 5,
+  "capacity": 200,
+  "avg_speed_kmh": 12
+}
+
+### Expected: 200, occupancy_status "full", action "reroute_immediately", bottleneck detected, low speed flagged
+
+
+### 2e. With Slot Details — Granular evaluation
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "area": "A",
+  "occupancy": 65,
+  "traffic": 90,
+  "violations": 2,
+  "capacity": 200,
+  "slot_details": [
+    { "slot_id": "A-001", "is_occupied": true, "vehicle_type": "car" },
+    { "slot_id": "A-002", "is_occupied": true, "vehicle_type": "motorcycle" },
+    { "slot_id": "A-003", "is_occupied": false },
+    { "slot_id": "A-004", "is_occupied": true, "vehicle_type": "car" },
+    { "slot_id": "A-005", "is_occupied": false }
+  ]
+}
+
+### Expected: 200, slot_evaluation with vehicle_breakdown, occupancy_status "moderate"
+
+
+# ═══════════════════════════════════════════════════════════════
+# 3. MULTI-AREA SIMULATION — Load Balancing
+# ═══════════════════════════════════════════════════════════════
+
+### 3a. Three areas — One overloaded, one underutilized
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "areas": [
+    {
+      "area": "A",
+      "area_id": "a1",
+      "occupancy_percent": 92,
+      "capacity": 250,
+      "traffic_volume": 200,
+      "vehicles_entering": 30,
+      "vehicles_leaving": 10,
+      "violations": { "count": 4 }
+    },
+    {
+      "area": "B",
+      "area_id": "b1",
+      "occupancy_percent": 45,
+      "capacity": 300,
+      "traffic_volume": 80,
+      "violations": { "count": 1 }
+    },
+    {
+      "area": "C",
+      "area_id": "c1",
+      "occupancy_percent": 60,
+      "capacity": 180,
+      "traffic_volume": 90,
+      "violations": { "count": 0 }
+    }
+  ]
+}
+
+### Expected: 200, system_status "warning" or "imbalanced", reroute suggestions from A to B, balance suggestions
+
+
+### 3b. All areas critical — System-wide overload
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "areas": [
+    { "area": "A", "area_id": "a1", "occupancy_percent": 96, "capacity": 200, "traffic_volume": 195, "violations": { "count": 8 } },
+    { "area": "B", "area_id": "b1", "occupancy_percent": 94, "capacity": 200, "traffic_volume": 190, "violations": { "count": 6 } },
+    { "area": "C", "area_id": "c1", "occupancy_percent": 91, "capacity": 200, "traffic_volume": 185, "violations": { "count": 5 } }
+  ]
+}
+
+### Expected: 200, system_status "critical", no available alternatives, enforcement flags
+
+
+# ═══════════════════════════════════════════════════════════════
+# 4. POLICY TESTING
+# ═══════════════════════════════════════════════════════════════
+
+### 4a. Dynamic Pricing — Test price increase impact
+POST {{base}}/simulator/policy-test
+Content-Type: {{contentType}}
+
+{
+  "policy_type": "dynamic_pricing",
+  "current_state": {
+    "occupancy_percent": 88,
+    "traffic_volume": 160,
+    "violations": 5,
+    "capacity": 200
+  },
+  "policy_params": {
+    "price_increase_percent": 30
+  }
+}
+
+### Expected: 200, simulated_state with lower occupancy, efficiency_change positive
+
+
+### 4b. Time Limit — Restrict max duration
+POST {{base}}/simulator/policy-test
+Content-Type: {{contentType}}
+
+{
+  "policy_type": "time_limit",
+  "current_state": {
+    "occupancy_percent": 75,
+    "traffic_volume": 120,
+    "violations": 3,
+    "capacity": 200
+  },
+  "policy_params": {
+    "max_duration_minutes": 90
+  }
+}
+
+### Expected: 200, simulated occupancy reduced, traffic increased (more turnover)
+
+
+### 4c. Reserved Zones — Allocate reserved parking
+POST {{base}}/simulator/policy-test
+Content-Type: {{contentType}}
+
+{
+  "policy_type": "reserved_zones",
+  "current_state": {
+    "occupancy_percent": 70,
+    "traffic_volume": 140,
+    "violations": 2,
+    "capacity": 200
+  },
+  "policy_params": {
+    "reserved_percent": 15
+  }
+}
+
+### Expected: 200, effective capacity reduced, occupancy recalculated higher
+
+
+### 4d. Enforcement Boost — Increase patrol frequency
+POST {{base}}/simulator/policy-test
+Content-Type: {{contentType}}
+
+{
+  "policy_type": "enforcement_boost",
+  "current_state": {
+    "occupancy_percent": 60,
+    "traffic_volume": 100,
+    "violations": 8,
+    "capacity": 200
+  },
+  "policy_params": {
+    "patrol_increase_percent": 75
+  }
+}
+
+### Expected: 200, violations reduced significantly, efficiency improved
+
+
+### 4e. Active Reroute — Redirect incoming traffic
+POST {{base}}/simulator/policy-test
+Content-Type: {{contentType}}
+
+{
+  "policy_type": "reroute_active",
+  "current_state": {
+    "occupancy_percent": 92,
+    "traffic_volume": 180,
+    "violations": 4,
+    "capacity": 200
+  },
+  "policy_params": {
+    "reroute_percent": 20
+  }
+}
+
+### Expected: 200, occupancy drops to ~72%, traffic drops, efficiency improves
+
+
+# ═══════════════════════════════════════════════════════════════
+# 5. ERROR HANDLING
+# ═══════════════════════════════════════════════════════════════
+
+### 5a. Empty body → 400
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+### Expected: 400, error message
+
+
+### 5b. Missing area → 400
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "occupancy": 50
+}
+
+### Expected: 400, error about missing "area"
+
+
+### 5c. Invalid occupancy (> 100) → 400
+POST {{base}}/simulator/run
+Content-Type: {{contentType}}
+
+{
+  "area": "A",
+  "occupancy": 150,
+  "traffic": 100
+}
+
+### Expected: 400, error about occupancy range
+
+
+### 5d. Missing policy_type → 400
+POST {{base}}/simulator/policy-test
+Content-Type: {{contentType}}
+
+{
+  "current_state": { "occupancy_percent": 50 }
+}
+
+### Expected: 400, error about missing policy_type
+
+
+### 5e. Unknown policy type → handled gracefully
+POST {{base}}/simulator/policy-test
+Content-Type: {{contentType}}
+
+{
+  "policy_type": "teleport_vehicles",
+  "current_state": { "occupancy_percent": 50, "traffic_volume": 100, "violations": 0, "capacity": 200 }
+}
+
+### Expected: 200, message about unknown policy type, no changes applied

@@ -1,0 +1,223 @@
+### ================================================================
+### Smart Parking — Demand Prediction API Test Suite
+### ================================================================
+### Run with:
+###   - VS Code REST Client extension
+###   - Thunder Client
+###   - curl (copy individual requests)
+###
+### Ensure backend is running: cd backend && node index.js
+### ================================================================
+
+@base = http://localhost:8000/api
+@contentType = application/json
+
+# ═══════════════════════════════════════════════════════════════
+# 1. VALID PREDICTION REQUESTS
+# ═══════════════════════════════════════════════════════════════
+
+### 1a. POST /api/ai/demand/predict — Valid 5-hour prediction
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": 14,
+  "horizon": 5
+}
+
+### Expected: 200, { success: true, data: { predictions: [...], confidence, version, metadata } }
+
+
+### 1b. POST /api/ai/demand/predict — Single hour prediction
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": 8,
+  "horizon": 1
+}
+
+### Expected: 200, predictions array with 1 element
+
+
+### 1c. POST /api/ai/demand/predict — Full 24-hour prediction
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": 0,
+  "horizon": 24,
+  "history": {
+    "parking_occupancy": [0.65, 0.70, 0.72, 0.68],
+    "traffic_volume": [120, 150, 140, 130]
+  }
+}
+
+### Expected: 200, 24 predictions with history influence
+
+
+### 1d. POST /api/ai/demand/predict/daily — 24-hour forecast
+POST {{base}}/ai/demand/predict/daily
+Content-Type: {{contentType}}
+
+{}
+
+### Expected: 200, 24 predictions, metadata.period = "24h"
+
+
+### 1e. POST /api/ai/demand/predict/weekly — 7-day forecast
+POST {{base}}/ai/demand/predict/weekly
+Content-Type: {{contentType}}
+
+{}
+
+### Expected: 200, 7 predictions, metadata.period = "7d"
+
+
+# ═══════════════════════════════════════════════════════════════
+# 2. HEALTH CHECK
+# ═══════════════════════════════════════════════════════════════
+
+### 2a. GET /api/ai/demand/health — Service health
+GET {{base}}/ai/demand/health
+
+### Expected: 200, { status, model_loaded, ai_available }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 3. INVALID / MISSING FIELDS → 400
+# ═══════════════════════════════════════════════════════════════
+
+### 3a. POST /api/ai/demand/predict — Missing current_hour
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "horizon": 5
+}
+
+### Expected: 400, { success: false, error: "current_hour (number, 0-23) is required" }
+
+
+### 3b. POST /api/ai/demand/predict — Missing horizon (uses default)
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": 10
+}
+
+### Expected: 200, default horizon=5
+
+
+# ═══════════════════════════════════════════════════════════════
+# 4. INVALID TYPES → 400
+# ═══════════════════════════════════════════════════════════════
+
+### 4a. POST /api/ai/demand/predict — current_hour as string
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": "14",
+  "horizon": 5
+}
+
+### Expected: 400, { success: false, error: "current_hour (number, 0-23) is required" }
+
+
+### 4b. POST /api/ai/demand/predict — current_hour out of range
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": 25,
+  "horizon": 5
+}
+
+### Expected: 400, { success: false, error: "current_hour must be between 0 and 23" }
+
+
+### 4c. POST /api/ai/demand/predict — negative hour
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": -1,
+  "horizon": 3
+}
+
+### Expected: 400
+
+
+# ═══════════════════════════════════════════════════════════════
+# 5. EDGE CASES
+# ═══════════════════════════════════════════════════════════════
+
+### 5a. POST /api/ai/demand/predict — Midnight (hour 0)
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": 0,
+  "horizon": 3
+}
+
+### Expected: 200, low occupancy values (night profile)
+
+
+### 5b. POST /api/ai/demand/predict — Peak hour (14:00)
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+{
+  "current_hour": 14,
+  "horizon": 4
+}
+
+### Expected: 200, high occupancy values (> 0.6)
+
+
+### 5c. POST /api/ai/demand/predict — Empty body
+POST {{base}}/ai/demand/predict
+Content-Type: {{contentType}}
+
+### Expected: 400 (no current_hour)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 6. BACKWARD COMPATIBILITY — Legacy endpoints
+# ═══════════════════════════════════════════════════════════════
+
+### 6a. POST /api/ai/predict — Legacy endpoint
+POST {{base}}/ai/predict
+Content-Type: {{contentType}}
+
+{
+  "hour": 10,
+  "horizon": 3
+}
+
+### Expected: 200, { success: true, data: { prediction: [...], hours_ahead } }
+
+
+### 6b. GET /api/ai/health — Legacy health endpoint
+GET {{base}}/ai/health
+
+### Expected: 200
+
+
+# ═══════════════════════════════════════════════════════════════
+# 7. INTEGRATION — Analytics Backend Endpoints
+# ═══════════════════════════════════════════════════════════════
+
+### 7a. GET /api/analytics/efficiency/slots — Live data efficiency
+GET {{base}}/analytics/efficiency/slots
+
+### Expected: 200, { occupancyPercentage, availableSlots, averageDurationMinutes, turnoverRate, utilizationScore }
+
+
+### 7b. GET /api/analytics/efficiency — Mock efficiency
+GET {{base}}/analytics/efficiency
+
+### Expected: 200, mock area-level efficiency data
