@@ -30,14 +30,14 @@ async function request(endpoint, options = {}) {
 export { request };
 
 export const api = {
-  // ── Auth ──────────────────────────────────────────────
+  // Auth
   auth: {
     login: (credentials) =>
       request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
     getProfile: () => request('/auth/profile'),
   },
 
-  // ── Parking Slots ─────────────────────────────────────
+  // Parking Slots
   slots: {
     getAll: () => request('/slots'),
     getById: (id) => request(`/slots/${id}`),
@@ -49,7 +49,7 @@ export const api = {
       request(`/slots/${id}`, { method: 'DELETE' }),
   },
 
-  // ── Parking Logs ──────────────────────────────────────
+  // Parking Logs
   logs: {
     list: (params = {}) => {
       const qs = new URLSearchParams(params).toString();
@@ -60,13 +60,23 @@ export const api = {
       request('/logs', { method: 'POST', body: JSON.stringify(data) }),
   },
 
-  // ── Dashboard ─────────────────────────────────────────
+  // Dashboard
   dashboard: {
     summary: () => request('/dashboard/summary'),
     slotsMap: () => request('/dashboard/slots-map'),
   },
 
-  // ── Camera (placeholder — no backend yet) ─────────────
+  // Analytics — used by AnalyticsDashboard.jsx fetchAll()
+  analytics: {
+    occupancyTrends: (range = '7d') => request(`/analytics/occupancy/trends?range=${range}`),
+    trafficCorrelation: (range = '7d') => request(`/analytics/traffic/correlation?range=${range}`),
+    violationHotspots: (limit = 25) => request(`/analytics/violation/hotspots?limit=${limit}`),
+    bottlenecks: () => request('/analytics/bottlenecks'),
+    efficiency: () => request('/analytics/efficiency/slots'),
+    executiveSummary: () => request('/analytics/executive-summary'),
+  },
+
+  // Camera (placeholder — no backend yet)
   camera: {
     // Returns mock data until /camera/* endpoints exist
     getLogs: async () => ({ success: true, data: mockCameraLogs() }),
@@ -74,7 +84,7 @@ export const api = {
   },
 };
 
-// ── Mock camera data (backend not ready) ────────────────
+// Mock camera data (backend not ready)
 function mockCameraLogs() {
   return [
     { id: 1, camera_id: 'CAM-01', event: 'vehicle_detected', plate: 'B 1234 XYZ', timestamp: new Date().toISOString() },

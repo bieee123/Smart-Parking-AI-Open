@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Hls from 'hls.js';
 import { api } from '../services/api';
 import { formatDate } from '../utils/helpers';
 import { 
   HiCamera, HiTruck, HiChip, HiCloudUpload, HiPlay, HiCheckCircle, 
-  HiRefresh, HiChevronRight, HiDownload, HiTrash, HiInformationCircle 
+  HiRefresh, HiChevronRight, HiDownload, HiTrash, HiInformationCircle, HiX 
 } from 'react-icons/hi';
 import { FaFileVideo, FaRobot, FaParking, FaTrafficLight } from 'react-icons/fa';
 
@@ -17,10 +17,21 @@ export default function LiveCamera() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('parking'); // 'parking' or 'street'
   const [sourceMode, setSourceMode] = useState('live'); // 'live' or 'upload'
+
+  // Upload states — enhanced from original isUploading/uploadProgress
+  const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle'|'uploading'|'processing'|'done'|'error'
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  // Keep isUploading as derived state for backward compatibility with existing UI
+  const isUploading = uploadStatus === 'uploading' || uploadStatus === 'processing';
+
   const [streamResolving, setStreamResolving] = useState(false);
+
+  // Violation alert state
+  const [violationAlert, setViolationAlert] = useState(null);
+
   const videoRef = useRef(null);
+  const canvasRef = useRef(null); // Bounding box overlay canvas
   const fileInputRef = useRef(null);
 
   // Mock Street Cameras with real URL for the first one
@@ -43,6 +54,48 @@ export default function LiveCamera() {
     { id: 'ATCS-003', name: 'ATCS Pusat', status: 'offline', area: 'Street' },
   ];
 
+  // ── Canvas bounding box helper ───────────────────────────────────────────────
+  const drawBoxes = useCallback((boxes) => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!boxes?.length || !video) return;
+
+    // Normalize from AI resolution (640x640) to current display size
+    const scaleX = canvas.width / 640;
+    const scaleY = canvas.height / 640;
+
+    boxes.forEach(([x, y, w, h, confidence, classId]) => {
+      if ((confidence ?? 1) < 0.40) return; // skip low-confidence detections
+      const color = classId === 5 ? '#ef4444' : '#22c55e'; // red=violation, green=vehicle
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+      ctx.fillStyle = color;
+      ctx.font = '11px monospace';
+      ctx.fillText(`${((confidence ?? 1) * 100).toFixed(0)}%`, x * scaleX + 2, y * scaleY - 4);
+    });
+  }, []);
+
+  // Sync canvas size to video element via ResizeObserver
+  useEffect(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        canvas.width = entry.contentRect.width;
+        canvas.height = entry.contentRect.height;
+      }
+    });
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [activeTab, sourceMode]);
+
+  // Fetch camera list and logs on mount
   useEffect(() => {
     async function fetchData() {
       try {
@@ -123,7 +176,24 @@ export default function LiveCamera() {
       try {
         const data = JSON.parse(event.data);
         setTrafficData(data);
-        
+
+        // Draw bounding boxes if present in SSE data
+        if (data.boxes) {
+          drawBoxes(data.boxes);
+        }
+
+        // Violation alert — trigger if violations array has items OR density_level signals issue
+        const hasViolations = (data.violations && data.violations.length > 0);
+        if (hasViolations) {
+          const alert = {
+            location: data.violations[0]?.location || selectedStreetCamera?.name || 'Detected area',
+            timestamp: new Date().toISOString(),
+          };
+          setViolationAlert(alert);
+          // Auto-dismiss after 8 seconds
+          setTimeout(() => setViolationAlert(null), 8000);
+        }
+
         // If a plate is detected by AI, push to local logs for display
         if (data.last_plate && data.last_plate !== "NO_PLATE_DETECTED") {
           const newLog = {
@@ -151,39 +221,57 @@ export default function LiveCamera() {
     formData.append('video', file);
 
     try {
-      setIsUploading(true);
-      setUploadProgress(10); // Start progress
-
-      // Mock progress simulation until real-time progress endpoint is ready
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => (prev < 90 ? prev + 5 : prev));
-      }, 1000);
+      setUploadStatus('uploading');
+      setUploadProgress(10);
+      setUploadResult(null);
 
       const response = await fetch('http://localhost:9000/ai/traffic/upload', {
         method: 'POST',
         body: formData,
       });
 
-      const result = await response.json();
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      // Update traffic data with overall results
-      setTrafficData({
-        vehicle_count: result.total_vehicles || 0,
-        density_level: result.avg_density || 'medium',
-        recommendation: `Analysis complete. Total ${result.total_vehicles} vehicles processed.`,
-        last_plate: result.sample_plate || 'N/A'
-      });
+      if (!response.ok) throw new Error(`Upload failed: HTTP ${response.status}`);
 
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 2000);
+      const result = await response.json();
+      setUploadStatus('processing');
+
+      // Listen to SSE progress stream for processing updates
+      const progressSource = new EventSource('http://localhost:9000/ai/traffic/process-status');
+      progressSource.onmessage = (event) => {
+        try {
+          const { progress, result: processResult } = JSON.parse(event.data);
+          setUploadProgress(progress ?? 0);
+          if ((progress ?? 0) >= 100) {
+            setUploadResult(processResult || result);
+            setUploadStatus('done');
+            // Update trafficData with overall results
+            setTrafficData({
+              vehicle_count: (processResult || result).total_vehicles || result.total_vehicles || 0,
+              density_level: (processResult || result).avg_density || result.avg_density || 'medium',
+              recommendation: `Analysis complete. Total ${(processResult || result).total_vehicles || result.total_vehicles || 0} vehicles processed.`,
+              last_plate: result.sample_plate || 'N/A'
+            });
+            progressSource.close();
+          }
+        } catch { progressSource.close(); setUploadStatus('error'); }
+      };
+      progressSource.onerror = () => {
+        // SSE progress not available — fall back to result from initial upload response
+        setUploadResult(result);
+        setUploadStatus('done');
+        setUploadProgress(100);
+        setTrafficData({
+          vehicle_count: result.total_vehicles || 0,
+          density_level: result.avg_density || 'medium',
+          recommendation: `Analysis complete. Total ${result.total_vehicles || 0} vehicles processed.`,
+          last_plate: result.sample_plate || 'N/A'
+        });
+        progressSource.close();
+      };
 
     } catch (err) {
       console.error("Video upload failed", err);
-      setIsUploading(false);
+      setUploadStatus('error');
       setUploadProgress(0);
     }
   };
@@ -208,6 +296,22 @@ export default function LiveCamera() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Violation Alert Banner */}
+      {violationAlert && (
+        <div className="mb-4 bg-red-600 text-white px-4 py-3 rounded-lg flex items-center justify-between shadow-lg animate-in slide-in-from-top duration-300">
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <span className="text-lg">⚠</span>
+            Illegal parking detected &mdash; {violationAlert.location}
+          </span>
+          <button 
+            onClick={() => setViolationAlert(null)} 
+            className="p-1 hover:bg-red-700 rounded transition-colors"
+          >
+            <HiX />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Live Traffic & Cameras</h1>
@@ -449,6 +553,12 @@ export default function LiveCamera() {
                   </div>
                 ) : null}
                 <video ref={videoRef} className="w-full h-full object-cover" muted autoPlay playsInline />
+                {/* Canvas overlay for bounding boxes — transparent, sits over the video */}
+                <canvas
+                  ref={canvasRef}
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{ background: 'transparent' }}
+                />
               </div>
             </div>
           </div>
@@ -565,7 +675,18 @@ export default function LiveCamera() {
                      </div>
                      <div className="h-20 bg-white/5 border border-white/10 rounded-xl" />
                   </div>
-                ) : trafficData?.recommendation?.includes('complete') ? (
+                ) : uploadStatus === 'error' ? (
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-red-400 mb-2">Upload Failed</p>
+                    <p className="text-sm text-gray-400">Video analysis feature may not be ready yet. Please try again later.</p>
+                    <button 
+                      onClick={() => setUploadStatus('idle')} 
+                      className="mt-4 px-4 py-2 bg-gray-700 text-gray-200 rounded-lg text-sm hover:bg-gray-600 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : (uploadStatus === 'done' || trafficData?.recommendation?.includes('complete')) ? (
                   <div className="w-full max-w-xl animate-in zoom-in-95 duration-500">
                     <div className="text-center mb-8">
                        <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-blue-400/30 shadow-[0_0_30px_rgba(59,130,246,0.2)]">

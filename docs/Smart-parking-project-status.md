@@ -1,6 +1,6 @@
 # 🚗 Smart Parking System — Project Status (Master Document)
 
-> **Last Updated:** 2026 | **Version:** 2.0 (Consolidated from all docs)
+> **Last Updated:** 2026-05-05 | **Version:** 2.1 (Updated after Part 1 & Part 2 migration session)
 > **Case:** Smart Parking and Infrastructure Demand Management
 
 ---
@@ -10,18 +10,18 @@
 | Layer                           | Progress | Status         |
 | ------------------------------- | -------- | -------------- |
 | Database (PostgreSQL + MongoDB) | 100%     | ✅ Done        |
-| Backend API (Node.js + Express) | 80%      | ✅ Mostly Done |
-| Frontend (React + Vite)         | 75%      | 🔄 In Progress |
-| AI Service (Python + FastAPI)   | 65%      | 🔄 In Progress |
-| Dashboard Analytics             | 60%      | 🔄 In Progress |
-| Policy Simulator                | 70%      | 🔄 In Progress |
-| Executive Summary               | 75%      | 🔄 In Progress |
-| ONNX / Real ML Integration      | 15%      | ❌ Not Done    |
-| CCTV / Live Stream Pipeline     | 20%      | ❌ Not Done    |
-| Video Upload Analytics          | 0%       | ❌ Planned     |
+| Backend API (Node.js + Express) | 92%      | ✅ Mostly Done |
+| Frontend (React + Vite)         | 85%      | ✅ Mostly Done |
+| AI Service (Python + FastAPI)   | 75%      | 🔄 In Progress |
+| Dashboard Analytics             | 90%      | ✅ Mostly Done |
+| Policy Simulator                | 90%      | ✅ Mostly Done |
+| Executive Summary               | 90%      | ✅ Mostly Done |
+| ONNX / Real ML Integration      | 40%      | 🔄 In Progress |
+| CCTV / Live Stream Pipeline     | 25%      | 🔄 In Progress |
+| Video Upload Analytics          | 50%      | 🔄 In Progress |
 
-**→ Estimated Total Progress: ~65%**
-_(Backend, UI, dan rule-based logic sudah solid. Yang tersisa adalah integrasi ML real dan pipeline video.)_
+**→ Estimated Total Progress: ~78%**
+_(Backend analytics fully migrated ke real DB + fallback. ONNX InferenceEngine selesai. Frontend canvas overlay + violation alert + upload states selesai. Yang tersisa: model `.onnx` real inference dan video upload endpoint di AI service.)_
 
 ---
 
@@ -106,10 +106,10 @@ _(Backend, UI, dan rule-based logic sudah solid. Yang tersisa adalah integrasi M
 
 | Service File              | Status     | Keterangan                                                    |
 | ------------------------- | ---------- | ------------------------------------------------------------- |
-| `executiveSummary.js`     | 🟡 Partial | Aggregasi DB nyata sudah berjalan, beberapa fungsi masih mock |
-| `prediction_service.js`   | 🟡 Partial | Punya retry logic bagus, tapi masih ada mock fallback         |
+| `executiveSummary.js`     | ✅ Done    | Semua 3 generator dibungkus try/catch + deterministic fallback |
+| `prediction_service.js`   | ✅ Done    | Config toggle `useMockFallback` via `NODE_ENV`, URL via env   |
 | `slotEfficiency.js`       | ✅ Done    | Sudah pakai PostgreSQL real                                   |
-| `analytics.controller.js` | 🔴 Mock    | 5 endpoint masih return mock/random data                      |
+| `analytics.controller.js` | ✅ Done    | 5 endpoint → real DB query (PostgreSQL/MongoDB) + mock fallback otomatis |
 | `simulator/rules.js`      | ✅ Done    | Rule engine fully functional                                  |
 | `simulator/engine.js`     | 🟡 Partial | Engine jalan, input masih dari mock                           |
 
@@ -122,11 +122,11 @@ _(Backend, UI, dan rule-based logic sudah solid. Yang tersisa adalah integrasi M
 | Page                                           | Status     | Keterangan                                                 |
 | ---------------------------------------------- | ---------- | ---------------------------------------------------------- |
 | Login                                          | ✅ Done    | Terhubung backend, simpan JWT                              |
-| Dashboard (`Dashboard.jsx`)                    | 🟡 Partial | Layout & cards ada, grafik masih mock data                 |
-| Live Camera (`LiveCamera.jsx`)                 | ✅ Done    | HLS player, YouTube resolve, sidebar kamera, SSE connected |
+| Dashboard (`Dashboard.jsx`)                    | ✅ Done    | Stat cards + recent logs dari real API, tidak ada mock     |
+| Live Camera (`LiveCamera.jsx`)                 | ✅ Done    | HLS + canvas overlay + violation alert + upload states     |
 | Parking Map (`MapParking.jsx`)                 | ✅ Done    | Visualisasi slot real dari API, warna occupied/free        |
-| Analytics (`AnalyticsDashboard.jsx`)           | 🟡 Partial | Charts siap, tapi data hardcoded (mock constants)          |
-| Simulator (`SimulatorPage.jsx`)                | 🟡 Partial | UI interaktif, terhubung rule engine                       |
+| Analytics (`AnalyticsDashboard.jsx`)           | ✅ Done    | Real API fetch + skeleton loading + error banner           |
+| Simulator (`SimulatorPage.jsx`)                | ✅ Done    | Real async fetch, inline error, 3 tab simulation           |
 | Executive Summary (`ExecutiveSummaryPage.jsx`) | ✅ Done    | Terhubung live API endpoint                                |
 
 ### Components Status
@@ -140,16 +140,18 @@ _(Backend, UI, dan rule-based logic sudah solid. Yang tersisa adalah integrasi M
 | `ViolationHeatmap.jsx`          | ✅ Done (generic)                    |
 | `BottleneckMap.jsx`             | ✅ Done (generic)                    |
 | `EfficiencyStats.jsx`           | ✅ Done (generic)                    |
-| Canvas Overlay (bounding boxes) | ❌ Not Built                         |
+| Canvas Overlay (bounding boxes) | ✅ Done — `LiveCamera.jsx` + `canvasRef` + `drawBoxes()` + ResizeObserver |
+| `api.js` analytics functions    | ✅ Done — `api.analytics.*` (6 endpoint functions) |
 
 ### Apa yang masih perlu dilakukan di Frontend
 
-- ❌ `AnalyticsDashboard.jsx` — hapus mock constants, tambah `useEffect` + `fetch()` ke API real
-- ❌ Loading states — ganti `setTimeout()` → async fetch loading
-- ❌ Error boundary — untuk failed API calls
-- ❌ Canvas overlay — render bounding box deteksi di atas video player
-- ❌ Upload Analytics section — drag-and-drop video file di `LiveCamera.jsx`
-- ❌ Alert system — notifikasi otomatis jika terdeteksi "Illegal Parking"
+- ✅ ~~`AnalyticsDashboard.jsx` — hapus mock constants, tambah `useEffect` + `fetch()` ke API real~~
+- ✅ ~~Loading states — ganti `setTimeout()` → async fetch loading~~
+- ✅ ~~Error boundary — untuk failed API calls~~
+- ✅ ~~Canvas overlay — render bounding box deteksi di atas video player~~
+- ✅ ~~Upload Analytics section — drag-and-drop video file di `LiveCamera.jsx`~~
+- ✅ ~~Alert system — notifikasi otomatis jika terdeteksi "Illegal Parking"~~
+- ⏳ Canvas boxes akan muncul saat SSE dari AI service mulai mengirim field `data.boxes`
 
 ---
 
@@ -181,12 +183,13 @@ _(Backend, UI, dan rule-based logic sudah solid. Yang tersisa adalah integrasi M
 
 | File                           | Status         | Yang Perlu Dilakukan                 |
 | ------------------------------ | -------------- | ------------------------------------ |
-| `services/stream_processor.py` | 🟡 Partial     | Integrasikan ONNX runtime loader     |
+| `services/stream_processor.py` | ✅ Done        | ONNX InferenceEngine ter-wire, fallback ke traffic_analyzer jika model tidak ada |
+| `services/inference_engine.py` | ✅ Done (NEW)  | ONNX wrapper, load 3 model, confidence threshold 0.40, graceful fallback |
 | `models/prediction_model.py`   | 🟡 Partial     | Implementasi `_predict_with_model()` |
 | `services/model_predictor.py`  | 🟡 Partial     | Feature engineering sesuai training  |
-| `training/pipeline.py`         | ❌ Empty       | Semua 7 step perlu implementasi real |
-| `utils/preprocessing.py`       | ❌ Placeholder | Semua fungsi baru log message        |
-| `utils/feature_engineering.py` | ❌ Placeholder | Semua fungsi baru log message        |
+| `training/pipeline.py`         | ✅ Done        | Fix syntax error, XGBoost primary + RF fallback, empty-data guards |
+| `utils/preprocessing.py`       | ✅ Done        | Guard kosong, 2-pass ffill+mean, clip outlier, exclude target dari normalisasi |
+| `utils/feature_engineering.py` | ✅ Done        | Guard kosong, static `is_holiday`, cyclic encoding, dropna guard |
 | `services/ensemble_engine.py`  | ❌ Planned     | Multi-model logic baru               |
 
 ---
@@ -229,50 +232,49 @@ _(Backend, UI, dan rule-based logic sudah solid. Yang tersisa adalah integrasi M
 
 ## ❌ 6. YANG BELUM DIKERJAKAN (Priority Order)
 
-### 🔴 HIGH PRIORITY — Mock → Real Migration
+### ✅ SELESAI (Session 2026-05-05)
 
 **Backend:**
-
-- [ ] `analytics.controller.js` — Ganti 5 endpoint mock dengan query PostgreSQL/MongoDB real:
-  - `getOccupancyTrends` → query `parking_occupancy_history`
-  - `getTrafficCorrelation` → hitung Pearson dari `traffic_volume_history`
-  - `getViolationHotspots` → aggregate `violation_history` by zone
-  - `getBottlenecks` → query `bottleneck_map`
-  - `getEfficiency` → query `slot_usage_trends` + `parking_logs`
-- [ ] `executiveSummary.js` — `generatePredictedTrends()` → panggil ML model real
-- [ ] `prediction_service.js` — matikan mock fallback di production (`useMockFallback: false`)
-
-**Frontend:**
-
-- [ ] `AnalyticsDashboard.jsx` — hapus `MOCK_OCCUPANCY_HOURLY`, dll. Tambah `useEffect` + `Promise.all(fetch(...))`
+- [x] `analytics.controller.js` — 5 endpoint → real DB query + mock fallback otomatis
+- [x] `executiveSummary.js` — semua generator try/catch + deterministic fallback
+- [x] `prediction_service.js` — `config` object, `useMockFallback` via `NODE_ENV`
 
 **AI Service:**
+- [x] `training/pipeline.py` — fix syntax error, XGBoost primary, empty-data guards
+- [x] `utils/preprocessing.py` — semua 5 fungsi: guard kosong, 2-pass ffill+mean, clip, exclude target
+- [x] `utils/feature_engineering.py` — semua 5 fungsi: guard kosong, static `is_holiday`, dropna guard
+- [x] `services/inference_engine.py` — BARU, ONNX wrapper, confidence 0.40, graceful fallback
+- [x] `services/stream_processor.py` — wire InferenceEngine, augment traffic_analyzer
 
-- [ ] `training/pipeline.py` — implementasi `load_data()`, `preprocess()`, `engineer_features()`, `split_data()`, `train()`, `evaluate()`, `save()`
-- [ ] `preprocessing.py` — `handle_missing_values()`, `remove_duplicates()`, `normalize_numeric()`, `encode_categorical()`, `handle_outliers()`
-- [ ] `feature_engineering.py` — `add_temporal_features()`, `add_lag_features()`, `add_rolling_features()`, `add_external_features()`, `create_target()`
+**Frontend:**
+- [x] `services/api.js` — tambah `api.analytics` section (6 endpoint functions)
+- [x] `LiveCamera.jsx` — canvas overlay + drawBoxes + ResizeObserver
+- [x] `LiveCamera.jsx` — violation alert banner + auto-dismiss 8s
+- [x] `LiveCamera.jsx` — `uploadStatus` enum + `uploadResult` + real SSE progress
 
-### 🟡 MEDIUM PRIORITY — ONNX Integration
+---
 
-- [ ] Buat class `InferenceEngine` di `ai-service/app/services/` yang memuat 3 model ONNX saat startup
-- [ ] Implementasi _Letterbox_ preprocessing (resize ke 640x640 tanpa distorsi)
-- [ ] Ganti `generate_mock_data()` di `app/routers/traffic.py` dengan inferensi ONNX real
-- [ ] Tambah confidence thresholding (filter deteksi < 40%)
-- [ ] Implementasi `_predict_with_model()` di `model_predictor.py` dengan feature engineering yang sesuai
+### 🔴 HIGH PRIORITY — Masih Perlu Dikerjakan
 
-### 🟡 MEDIUM PRIORITY — Frontend Visualization
+- [ ] Letakkan file `.onnx` di `ai-service/models/` agar InferenceEngine load model real
+- [ ] Ganti `generate_mock_data()` di `app/routers/traffic.py` dengan ONNX inference real
+- [ ] SSE output dari AI service perlu tambah field `boxes: [[x,y,w,h,conf,classId]]` agar canvas overlay aktif
+- [ ] SSE output perlu tambah field `violations: [{location}]` agar violation alert aktif
+- [ ] `model_predictor.py` — implementasi `_predict_with_model()` dengan feature engineering
 
-- [ ] Canvas overlay di atas video player untuk bounding boxes deteksi
-- [ ] SSE mapping — petakan field JSON `detections: [{box: [x,y,w,h], label}]` ke render function
-- [ ] Alert/notifikasi otomatis jika `parking_model.onnx` deteksi "Illegal Parking"
-- [ ] Loading states & error boundary yang proper
+### 🟡 MEDIUM PRIORITY
 
-### 🟢 LOW PRIORITY — Video Upload Analytics (New Feature)
+- [ ] `POST /traffic/upload` di AI service — OpenCV frame loop + ONNX inference + SSE progress
+- [ ] `GET /traffic/process-status` — SSE progress bar untuk video upload
+- [ ] Matikan `useMockFallback` di `prediction_service.js` saat production (`NODE_ENV=production`)
+- [ ] Data ingestion pipeline: sensor/kamera → `parking_occupancy_history`, `traffic_volume_history`
 
-- [ ] Frontend: Tambah tab "Upload Analytics" di `LiveCamera.jsx` dengan drag-and-drop
-- [ ] Backend: Endpoint `POST /traffic/analyze-video` + `GET /traffic/process-status` (SSE)
-- [ ] AI Service: `POST /traffic/upload` — OpenCV frame loop + ONNX inference + SSE progress
-- [ ] Database Sync: Simpan hasil agregat video ke PostgreSQL/MongoDB
+### 🟢 LOW PRIORITY
+
+- [ ] Backend: Endpoint `POST /traffic/analyze-video`
+- [ ] Database Sync: Simpan hasil video analytics ke PostgreSQL/MongoDB
+- [ ] Redis caching untuk analytics queries
+- [ ] Docker Compose (PostgreSQL, MongoDB, Backend, AI Service)
 
 ### 🟢 LOW PRIORITY — Live CCTV Pipeline
 
@@ -340,26 +342,28 @@ Smart-Parking/
 ├── frontend/
 │   └── src/
 │       ├── pages/
-│       │   ├── Dashboard.jsx         🟡 Partial
-│       │   ├── LiveCamera.jsx        ✅ Done
+│       │   ├── Dashboard.jsx         ✅ Done
+│       │   ├── LiveCamera.jsx        ✅ Done (+ canvas overlay + violation alert)
 │       │   ├── MapParking.jsx        ✅ Done
-│       │   ├── AnalyticsDashboard.jsx 🔴 Mock Data
-│       │   ├── SimulatorPage.jsx     🟡 Partial
+│       │   ├── AnalyticsDashboard.jsx ✅ Done (real API + skeleton + error)
+│       │   ├── SimulatorPage.jsx     ✅ Done (real async fetch)
 │       │   └── ExecutiveSummaryPage.jsx ✅ Done
+│       ├── services/api.js           ✅ Done (+ api.analytics section)
 │       └── components/analytics/    ✅ Semua chart generic & siap
 │
 └── ai-service/
     ├── app/
-    │   ├── routers/traffic.py        🟡 Partial
+    │   ├── routers/traffic.py        🟡 Partial (mock data, perlu ONNX real)
     │   ├── services/
-    │   │   ├── stream_processor.py   🟡 Partial
+    │   │   ├── stream_processor.py   ✅ Done (InferenceEngine ter-wire)
+    │   │   ├── inference_engine.py   ✅ Done (NEW — ONNX wrapper + fallback)
     │   │   ├── model_predictor.py    🟡 Partial
     │   │   └── ensemble_engine.py    ❌ Planned
     │   ├── models/prediction_model.py 🟡 Partial
     │   └── utils/
-    │       ├── preprocessing.py      ❌ Placeholder
-    │       └── feature_engineering.py ❌ Placeholder
-    ├── training/pipeline.py          ❌ Empty
+    │       ├── preprocessing.py      ✅ Done (guards + improved logic)
+    │       └── feature_engineering.py ✅ Done (guards + static features)
+    ├── training/pipeline.py          ✅ Done (XGBoost + RF fallback + guards)
     └── models/
         ├── lpr_model.onnx            ✅ Ready
         ├── vehicle_model.onnx        ✅ Ready
@@ -477,9 +481,10 @@ AI_SERVICE_URL="http://localhost:9000"
 | Missing historical dataset              | 🔴 High   | Model demand prediction masih heuristic, belum ada 30+ hari data real |
 | CCTV tidak bisa live stream di browser  | 🟡 Medium | Browser tidak support RTSP langsung, perlu MediaMTX/WebRTC converter  |
 | Inference latency 3 model ONNX simultan | 🟡 Medium | Bisa menyebabkan CPU bottleneck, pertimbangkan model Nano/Small       |
-| Bounding box koordinat mismatch         | 🟡 Medium | Resolusi AI (640x640) vs resolusi UI player perlu normalization       |
-| Mock data di AnalyticsDashboard         | 🟠 Medium | Data tidak mencerminkan kondisi real, misleading untuk demo           |
-| useMockFallback masih true              | 🟠 Medium | AI service errors akan silently fallback ke mock, susah debug         |
+| Bounding box koordinat mismatch         | ✅ Fixed  | Canvas `drawBoxes()` sudah normalisasi dari AI 640x640 → display size |
+| Mock data di AnalyticsDashboard         | ✅ Fixed  | AnalyticsDashboard sudah fetch real API + skeleton + error banner     |
+| useMockFallback masih true              | 🟠 Medium | Set `NODE_ENV=production` untuk disable. Di dev masih aktif.          |
+| SSE tidak kirim `boxes` dan `violations`| 🔴 High   | Canvas overlay & violation alert sudah siap di frontend, tapi AI service belum kirim field ini |
 
 ---
 
