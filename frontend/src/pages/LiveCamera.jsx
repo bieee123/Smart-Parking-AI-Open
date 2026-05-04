@@ -2,13 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { api } from '../services/api';
 import { formatDate } from '../utils/helpers';
+import { 
+  HiCamera, HiTruck, HiChip, HiCloudUpload, HiPlay, HiCheckCircle, 
+  HiRefresh, HiChevronRight, HiDownload, HiTrash, HiInformationCircle 
+} from 'react-icons/hi';
+import { FaFileVideo, FaRobot, FaParking, FaTrafficLight } from 'react-icons/fa';
 
 export default function LiveCamera() {
   const [cameras, setCameras] = useState([]);
   const [trafficData, setTrafficData] = useState(null);
   const [logs, setLogs] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
-  const [selectedStreetCamera, setSelectedStreetCamera] = useState({ id: 'ATCS-001', name: 'ATCS Medan - Simpang Pos', status: 'online' });
+  const [selectedStreetCamera, setSelectedStreetCamera] = useState({ id: 'ATCS-001', name: 'ATCS Pusat', status: 'online' });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('parking'); // 'parking' or 'street'
   const [sourceMode, setSourceMode] = useState('live'); // 'live' or 'upload'
@@ -22,20 +27,20 @@ export default function LiveCamera() {
   const streetCameras = [
     { 
       id: 'ATCS-001', 
-      name: 'ATCS Medan - Simpang Pos', 
+      name: 'ATCS Pusat', 
       status: 'online', 
       area: 'Street',
       streamUrl: 'https://atcsdishub.medan.go.id/stream/L2AHMADYANIPULAUPINANG/stream.m3u8' 
     },
     { 
       id: 'ATCS-004', 
-      name: 'Jalur Puncak - Gunung Mas', 
+      name: 'ATCS Pusat', 
       status: 'online', 
       area: 'Street',
       streamUrl: 'https://www.youtube.com/watch?v=465lj-w4DPs'
     },
-    { id: 'ATCS-002', name: 'ATCS Medan - Jln. Thamrin', status: 'online', area: 'Street' },
-    { id: 'ATCS-003', name: 'ATCS Medan - Jln. Gatot Subroto', status: 'offline', area: 'Street' },
+    { id: 'ATCS-002', name: 'ATCS Pusat', status: 'online', area: 'Street' },
+    { id: 'ATCS-003', name: 'ATCS Pusat', status: 'offline', area: 'Street' },
   ];
 
   useEffect(() => {
@@ -214,173 +219,87 @@ export default function LiveCamera() {
         </p>
       </div>
 
-      {/* Tab Switcher */}
+      {/* Tab Switcher - Restored to Original Left Position & Colors */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-8 w-fit border border-gray-200">
         <button
-          onClick={() => setActiveTab('parking')}
-          className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'parking'
+          onClick={() => {
+            setActiveTab('parking');
+            setSourceMode('live');
+          }}
+          className={`flex items-center gap-2 px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+            activeTab === 'parking' && sourceMode === 'live'
               ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
               : 'text-gray-500 hover:text-gray-700'
-            }`}
+          }`}
         >
+          <FaParking className={activeTab === 'parking' && sourceMode === 'live' ? 'text-primary-600' : 'text-gray-400'} />
           Parking CCTV
         </button>
         <button
-          onClick={() => setActiveTab('street')}
-          className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'street'
+          onClick={() => {
+            setActiveTab('street');
+            setSourceMode('live');
+          }}
+          className={`flex items-center gap-2 px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+            activeTab === 'street' && sourceMode === 'live'
               ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
               : 'text-gray-500 hover:text-gray-700'
-            }`}
+          }`}
         >
+          <FaTrafficLight className={activeTab === 'street' && sourceMode === 'live' ? 'text-primary-600' : 'text-gray-400'} />
           Street Traffic
+        </button>
+        <button
+          onClick={() => setSourceMode('upload')}
+          className={`flex items-center gap-2 px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+            sourceMode === 'upload'
+              ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <HiChip className={sourceMode === 'upload' ? 'text-primary-600' : 'text-gray-400'} />
+          Video Analytics
         </button>
       </div>
 
-      {/* Source Mode Toggle (Live vs Video File) - Premium Design */}
-      <div className="flex items-center justify-center mb-10">
-        <div className="bg-white/80 backdrop-blur-md p-1.5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex gap-2">
-          <button
-            onClick={() => setSourceMode('live')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-              sourceMode === 'live'
-                ? 'bg-green-500 text-white shadow-lg shadow-green-200'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full ${sourceMode === 'live' ? 'bg-white animate-pulse' : 'bg-gray-300'}`} />
-            LIVE CCTV
-          </button>
-          <button
-            onClick={() => setSourceMode('upload')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-              sourceMode === 'upload'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            VIDEO ANALYTICS
-          </button>
-        </div>
-      </div>
 
-      {/* Source Mode Toggle (Live vs Video File) */}
-      <div className="flex items-center justify-between mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="flex items-center gap-4">
-          <div className={`p-2 rounded-lg ${sourceMode === 'live' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
-            {sourceMode === 'live' ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-            )}
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-900">{sourceMode === 'live' ? 'Live CCTV Mode' : 'Video Analytics Mode'}</h3>
-            <p className="text-xs text-gray-500">{sourceMode === 'live' ? 'Streaming real-time from active cameras' : 'Analyze local video files for historical data'}</p>
-          </div>
-        </div>
-        
-        <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
-          <button
-            onClick={() => setSourceMode('live')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${sourceMode === 'live' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Live Feed
-          </button>
-          <button
-            onClick={() => setSourceMode('upload')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${sourceMode === 'upload' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Upload File
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'parking' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+      {/* Parking CCTV Tab */}
+      {activeTab === 'parking' && sourceMode === 'live' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Camera List */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {sourceMode === 'live' ? 'Cameras' : 'Upload Video'}
-                </h2>
+                <h2 className="text-lg font-semibold text-gray-900">Cameras</h2>
               </div>
-              
-              {sourceMode === 'live' ? (
-                <div className="divide-y divide-gray-200">
-                  {cameras.map((camera) => (
-                    <button
-                      key={camera.id}
-                      onClick={() => setSelectedCamera(camera)}
-                      className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${selectedCamera?.id === camera.id ? 'bg-primary-50' : ''
-                        }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{camera.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {camera.status === 'online' ? (
-                              <span className="text-green-600">● Online</span>
-                            ) : (
-                              <span className="text-red-500">● Offline</span>
-                            )}
-                          </p>
-                          {camera.linked_slot && (
-                            <p className="text-xs text-gray-400 mt-1">
-                              Linked: Slot {camera.linked_slot}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6">
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group"
+              <div className="divide-y divide-gray-200">
+                {cameras.map((camera) => (
+                  <button
+                    key={camera.id}
+                    onClick={() => setSelectedCamera(camera)}
+                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${selectedCamera?.id === camera.id ? 'bg-primary-50' : ''
+                      }`}
                   >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                    />
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                    </div>
-                    <p className="text-sm font-bold text-gray-900">Click or drag video to analyze</p>
-                    <p className="text-xs text-gray-500 mt-1">MP4, AVI, or MKV (Max 500MB)</p>
-                  </div>
-
-                  {isUploading && (
-                    <div className="mt-6 space-y-2">
-                      <div className="flex justify-between text-xs font-bold">
-                        <span className="text-blue-600 animate-pulse">Processing Video...</span>
-                        <span>{uploadProgress}%</span>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{camera.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {camera.status === 'online' ? (
+                            <span className="text-green-600">● Online</span>
+                          ) : (
+                            <span className="text-red-500">● Offline</span>
+                          )}
+                        </p>
+                        {camera.linked_slot && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Linked: Slot {camera.linked_slot}
+                          </p>
+                        )}
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-600 transition-all duration-300 shadow-[0_0_8px_rgba(37,99,235,0.5)]" 
-                          style={{ width: `${uploadProgress}%` }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-gray-400 italic text-center">AI is frame-counting vehicles & detecting plates...</p>
                     </div>
-                  )}
-                </div>
-              )}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Recent Camera Logs */}
@@ -407,7 +326,7 @@ export default function LiveCamera() {
             )}
           </div>
 
-          {/* Camera Feed Placeholder */}
+          {/* Camera Feed */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200 flex items-center justify-between">
@@ -433,7 +352,6 @@ export default function LiveCamera() {
                 )}
               </div>
               <div className="aspect-video bg-gray-900 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-                {/* Parking Camera Feed UI */}
                 <div className="absolute top-4 left-4 z-10">
                   <span className="flex items-center gap-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded text-[10px] text-white font-mono uppercase tracking-widest border border-white/10">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -441,33 +359,7 @@ export default function LiveCamera() {
                   </span>
                 </div>
 
-                {sourceMode === 'upload' && trafficData?.recommendation?.includes('complete') ? (
-                  <div className="text-center animate-in zoom-in duration-500">
-                    <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-400/30">
-                      <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Analysis Result</h3>
-                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto mt-6">
-                      <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Total Vehicles</p>
-                        <p className="text-2xl font-black text-blue-400">{trafficData.vehicle_count}</p>
-                      </div>
-                      <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Avg Density</p>
-                        <p className="text-2xl font-black text-green-400">{trafficData.density_level.toUpperCase()}</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-8 italic">Data has been synchronized to global analytics</p>
-                    <button 
-                      onClick={() => setTrafficData(null)}
-                      className="mt-6 text-xs text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest border-b border-blue-400/30 pb-1"
-                    >
-                      Clear & Upload New
-                    </button>
-                  </div>
-                ) : selectedCamera ? (
+                {selectedCamera ? (
                   <div className="text-center text-white">
                     <div className="relative mb-4">
                       <svg className="w-16 h-16 mx-auto text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -481,46 +373,23 @@ export default function LiveCamera() {
                       {selectedCamera.status === 'online' ? 'Camera stream active' : 'Camera is currently offline'}
                     </p>
                     <p className="text-sm text-gray-500 mt-2">
-                      {sourceMode === 'live' ? 'Waiting for vehicle entry/exit event...' : 'Upload a video to start AI processing'}
+                      Waiting for vehicle entry/exit event...
                     </p>
                   </div>
                 ) : (
                   <div className="text-center text-white">
-                    <p className="text-lg font-medium text-gray-400">
-                      {sourceMode === 'live' ? 'Select a camera to view feed' : 'Select camera or upload video for analysis'}
-                    </p>
+                    <p className="text-lg font-medium text-gray-400">Select a camera to view feed</p>
                   </div>
                 )}
               </div>
-
-              {/* Logs for selected camera */}
-              {cameraLogs.length > 0 && (
-                <div className="p-4 border-t border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                    Events for {selectedCamera.name}
-                  </h3>
-                  <div className="space-y-2">
-                    {cameraLogs.map((log) => (
-                      <div key={log.id} className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded">
-                        <span className="text-gray-700">
-                          {log.event.replace(/_/g, ' ')}
-                          {log.plate && <span className="ml-2 font-mono text-xs text-gray-500">{log.plate}</span>}
-                        </span>
-                        <span className="text-gray-400 text-xs">{formatDate(log.timestamp)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
       )}
 
       {/* Street Traffic Tab */}
-      {activeTab === 'street' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-          {/* Street Camera List */}
+      {activeTab === 'street' && sourceMode === 'live' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200">
@@ -551,7 +420,6 @@ export default function LiveCamera() {
               </div>
             </div>
 
-            {/* Recent Traffic Alerts */}
             <div className="bg-white rounded-lg shadow mt-6">
               <div className="p-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Traffic Alerts</h2>
@@ -564,137 +432,192 @@ export default function LiveCamera() {
                   </div>
                   <p className="text-gray-600 mt-0.5">Congestion detected at Simpang Pos</p>
                 </div>
-                <div className="p-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-green-600">Flow Improved</span>
-                    <span className="text-xs text-gray-400">5m ago</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">{selectedStreetCamera?.name}</h2>
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">LIVE STREAM</span>
+              </div>
+              <div className="aspect-video bg-gray-900 relative">
+                {streamResolving ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                   </div>
-                  <p className="text-gray-600 mt-0.5">Jln. Thamrin traffic is easing</p>
+                ) : null}
+                <video ref={videoRef} className="w-full h-full object-cover" muted autoPlay playsInline />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Analytics Mode (Merged Layout) */}
+      {sourceMode === 'upload' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Left Column: Upload & History */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <HiCloudUpload className="text-blue-600 text-xl" />
+                  Source File
+                </h2>
+              </div>
+              
+              <div className="p-6">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group bg-gray-50/30"
+                >
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="video/*,image/*"
+                    onChange={handleVideoUpload}
+                  />
+                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:rotate-12 transition-transform shadow-sm">
+                    <FaFileVideo className="text-3xl" />
+                  </div>
+                  <p className="text-sm font-bold text-gray-900">Upload Video or Image</p>
+                  <p className="text-[11px] text-gray-400 mt-2 font-medium">Drag & drop files to start AI analysis</p>
+                </div>
+
+                {isUploading && (
+                  <div className="mt-8 space-y-3">
+                    <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider">
+                      <span className="text-blue-600 animate-pulse">AI Processing...</span>
+                      <span className="text-gray-900">{uploadProgress}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden p-0.5 border border-gray-200/50">
+                      <div 
+                        className="h-full bg-blue-600 rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(37,99,235,0.4)]" 
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Analysis History (Placeholder like Recent Events) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mt-6 overflow-hidden">
+              <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Analysis History</h2>
+                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">RECENT</span>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {trafficData && (
+                   <div className="p-4 bg-blue-50/30 animate-in slide-in-from-left duration-300">
+                    <div className="flex justify-between items-start">
+                      <p className="text-xs font-bold text-gray-900">Last Processed File</p>
+                      <span className="text-[10px] text-gray-400 font-mono">JUST NOW</span>
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600 uppercase">
+                        {trafficData.vehicle_count} Vehicles
+                      </span>
+                      <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-green-600 uppercase">
+                        {trafficData.density_level}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div className="p-4 text-center py-12">
+                  <p className="text-xs text-gray-400 italic">No previous sessions found</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Street Camera Feed & Analysis */}
+          {/* Right Column: Results Area */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {selectedStreetCamera?.name || 'Select a street camera'}
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">AI Analysis Stream Active</p>
-                </div>
-                {selectedStreetCamera && (
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${selectedStreetCamera.status === 'online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                    {selectedStreetCamera.status}
-                  </span>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 h-full overflow-hidden flex flex-col">
+              <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-gray-900">AI Intelligence Review</h2>
+                {trafficData && (
+                  <div className="flex gap-2">
+                    <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+                      <HiDownload className="text-xl" />
+                    </button>
+                    <button onClick={() => setTrafficData(null)} className="p-2 hover:bg-red-50 text-red-400 rounded-lg transition-colors">
+                      <HiTrash className="text-xl" />
+                    </button>
+                  </div>
                 )}
               </div>
 
-              <div className="aspect-video bg-gray-900 relative overflow-hidden group">
-                {selectedStreetCamera ? (
-                  <>
-                    {/* Real Video Feed for Street */}
-                    <div className="absolute inset-0 bg-black">
-                      {streamResolving ? (
-                        <div className="flex flex-col items-center justify-center h-full space-y-4">
-                          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                          <div className="text-center">
-                            <p className="text-blue-400 font-mono text-sm tracking-widest animate-pulse">RESOLVING AI STREAM</p>
-                            <p className="text-white/40 text-[10px] mt-1 italic italic">Connecting via yt-dlp gateway...</p>
-                          </div>
-                        </div>
-                      ) : selectedStreetCamera.streamUrl ? (
-                        <video 
-                          ref={videoRef}
-                          className="w-full h-full object-cover"
-                          muted
-                          playsInline
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full">
-                          <p className="text-gray-500 text-sm font-mono tracking-widest uppercase">No Stream Source Available</p>
-                        </div>
-                      )}
+              <div className="flex-1 bg-gray-900 relative flex items-center justify-center p-8 min-h-[400px]">
+                {isUploading ? (
+                  <div className="w-full max-w-xl space-y-8 animate-pulse">
+                     <div className="text-center mb-8">
+                       <div className="w-24 h-24 bg-white/5 rounded-full mx-auto mb-6 border-2 border-white/10" />
+                       <div className="h-8 w-64 bg-white/5 rounded mx-auto mb-2" />
+                       <div className="h-4 w-48 bg-white/5 rounded mx-auto" />
+                     </div>
+                     <div className="grid grid-cols-2 gap-6">
+                       <div className="bg-white/5 p-6 rounded-2xl border border-white/10 h-32" />
+                       <div className="bg-white/5 p-6 rounded-2xl border border-white/10 h-32" />
+                     </div>
+                     <div className="h-20 bg-white/5 border border-white/10 rounded-xl" />
+                  </div>
+                ) : trafficData?.recommendation?.includes('complete') ? (
+                  <div className="w-full max-w-xl animate-in zoom-in-95 duration-500">
+                    <div className="text-center mb-8">
+                       <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-blue-400/30 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                        <HiCheckCircle className="text-5xl text-blue-400" />
+                      </div>
+                      <h3 className="text-3xl font-black text-white tracking-tight">Processing Complete</h3>
+                      <p className="text-gray-400 mt-2 text-sm">AI has successfully analyzed the uploaded source.</p>
                     </div>
 
-                    {/* CCTV Overlays */}
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute top-4 left-4 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
-                        <span className="text-[10px] font-mono text-white/80 tracking-widest uppercase">
-                          LIVE ATCS MEDAN — {selectedStreetCamera.name}
-                        </span>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors group">
+                        <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-2">Total Count</p>
+                        <p className="text-4xl font-black text-white group-hover:scale-105 transition-transform origin-left">{trafficData.vehicle_count}</p>
+                        <p className="text-xs text-gray-500 mt-1 italic">Vehicles detected</p>
                       </div>
-                      
-                      {/* Real AI Detection Badges (Floating on video) */}
-                      {trafficData?.last_plate && trafficData.last_plate !== "NO_PLATE_DETECTED" && (
-                        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 animate-in zoom-in-50 duration-300">
-                          <div className="bg-blue-600/90 backdrop-blur-md border-2 border-white px-6 py-2 rounded-lg shadow-[0_0_20px_rgba(37,99,235,0.5)]">
-                            <p className="text-[8px] text-blue-100 font-bold uppercase tracking-widest mb-1">Plate Recognized</p>
-                            <p className="text-2xl font-black text-white font-mono tracking-tighter">
-                              {trafficData.last_plate}
-                            </p>
-                            <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-green-400 transition-all duration-500" 
-                                style={{ width: `${(trafficData.confidence || 0) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Scanning Laser Line */}
-                      {selectedStreetCamera.status === 'online' && (
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-400/20 to-transparent h-[2px] animate-scan top-0" />
-                      )}
+                      <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors group">
+                        <p className="text-[10px] text-green-400 font-black uppercase tracking-[0.2em] mb-2">Traffic Flow</p>
+                        <p className="text-4xl font-black text-white group-hover:scale-105 transition-transform origin-left uppercase">{trafficData.density_level}</p>
+                        <p className="text-xs text-gray-500 mt-1 italic">Density level</p>
+                      </div>
                     </div>
 
-                    {/* AI Data Overlay if trafficData exists */}
-                    {trafficData && (
-                      <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/90 via-black/20 to-transparent">
-                        <div className="flex items-end justify-between">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${
-                                trafficData.density_level === 'high' ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-green-500'
-                              }`} />
-                              <span className="text-white font-bold tracking-wider">{trafficData.density_level.toUpperCase()} DENSITY</span>
-                            </div>
-                            <p className="text-white/60 text-[10px] italic">AI Recommendation: {trafficData.recommendation}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-blue-400 text-2xl font-black">{trafficData.vehicle_count}</p>
-                            <p className="text-white/40 text-[8px] uppercase font-bold tracking-tighter">Vehicles Detected</p>
-                          </div>
-                        </div>
+                    <div className="mt-6 bg-blue-600/20 border border-blue-500/30 p-4 rounded-xl">
+                      <div className="flex gap-3">
+                        <HiInformationCircle className="text-xl text-blue-400 mt-0.5" />
+                        <p className="text-sm text-blue-100 leading-relaxed font-medium">
+                          <span className="font-bold">AI Insight:</span> {trafficData.recommendation}
+                        </p>
                       </div>
-                    )}
-                  </>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full bg-black/40">
-                    <p className="text-gray-500 font-medium tracking-wide italic">STREET_UPLINK_DISCONNECTED</p>
+                  <div className="text-center group">
+                    <div className="relative mb-8">
+                       <FaRobot className="text-7xl mx-auto text-gray-800 transition-colors group-hover:text-gray-700" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="w-32 h-32 border border-blue-500/20 rounded-full animate-ping" />
+                      </div>
+                    </div>
+                    <p className="text-xl font-bold text-gray-500">Ready for Analysis</p>
+                    <p className="text-sm text-gray-600 mt-2 max-w-xs mx-auto">
+                      Select an image or video file from your local storage to perform real-time AI vehicle classification and density mapping.
+                    </p>
                   </div>
                 )}
-              </div>
 
-              {/* Mock Events for Street Camera */}
-              <div className="p-4 border-t border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                  Events for {selectedStreetCamera?.name}
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded">
-                    <span className="text-gray-700">Vehicle congestion detected</span>
-                    <span className="text-gray-400 text-xs">Just now</span>
+                {/* Aesthetic HUD Elements */}
+                <div className="absolute top-6 right-6 flex flex-col items-end gap-1">
+                  <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500/40 w-2/3" />
                   </div>
-                  <div className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded">
-                    <span className="text-gray-700">Emergency vehicle detected (Ambulance)</span>
-                    <span className="text-gray-400 text-xs">10m ago</span>
-                  </div>
+                  <p className="text-[8px] font-mono text-white/20 uppercase tracking-tighter">AI_V8_ENGINE_READY</p>
                 </div>
               </div>
             </div>

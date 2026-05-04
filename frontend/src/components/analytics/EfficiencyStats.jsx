@@ -8,7 +8,7 @@
 export default function EfficiencyStats({ metrics, title }) {
   return (
     <div className="w-full">
-      {title && <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>}
+      {title && <h3 className="text-lg font-semibold text-gray-700 mb-5">{title}</h3>}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {metrics.map((m, i) => (
           <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">

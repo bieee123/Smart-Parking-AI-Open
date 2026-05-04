@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import { 
+  HiLightningBolt, HiCollection, HiBeaker, HiRefresh, 
+  HiChevronRight, HiExclamationCircle, HiCheckCircle, HiExclamation,
+  HiClock, HiArrowRight, HiMinusCircle, HiPlay, HiDocumentReport
+} from 'react-icons/hi';
+import { FaPlay, FaRobot, FaMicroscope, FaParking, FaTrafficLight, FaCogs } from 'react-icons/fa';
 
 const API = 'http://localhost:8000/api';
 
@@ -12,13 +18,13 @@ const POLICY_TYPES = [
 
 function Badge({ level }) {
   const map = {
-    critical: 'bg-red-100 text-red-700 border border-red-200',
-    high: 'bg-orange-100 text-orange-700 border border-orange-200',
-    warning: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
-    medium: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
-    low: 'bg-green-100 text-green-700 border border-green-200',
-    none: 'bg-gray-100 text-gray-600 border border-gray-200',
-    ok: 'bg-blue-100 text-blue-700 border border-blue-200',
+    critical: 'bg-red-50 text-red-700 border border-red-100',
+    high: 'bg-orange-50 text-orange-700 border border-orange-100',
+    warning: 'bg-yellow-50 text-yellow-700 border border-yellow-100',
+    medium: 'bg-yellow-50 text-yellow-700 border border-yellow-100',
+    low: 'bg-green-50 text-green-700 border border-green-100',
+    none: 'bg-gray-50 text-gray-600 border border-gray-100',
+    ok: 'bg-blue-50 text-blue-700 border border-blue-100',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[level] || map.none}`}>
@@ -32,11 +38,11 @@ function ScoreBar({ score }) {
   const color = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-500';
   return (
     <div className="w-full">
-      <div className="flex justify-between text-xs text-slate-400 mb-1">
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
         <span>Efficiency Score</span>
-        <span className="font-bold text-white">{pct}%</span>
+        <span className="font-bold text-gray-900">{pct}%</span>
       </div>
-      <div className="w-full bg-slate-700 rounded-full h-2">
+      <div className="w-full bg-gray-100 rounded-full h-2">
         <div className={`h-2 rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -46,8 +52,8 @@ function ScoreBar({ score }) {
 function ResultPanel({ result, title }) {
   if (!result) return null;
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-slate-300">{title}</h3>
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
 
       {result.analysis && (
         <div className="grid grid-cols-2 gap-3">
@@ -57,8 +63,8 @@ function ResultPanel({ result, title }) {
             ['Violations', result.analysis.violation_status],
             ['Occupancy %', result.analysis.occupancy_percent != null ? `${result.analysis.occupancy_percent}%` : null],
           ].filter(([, v]) => v != null).map(([k, v]) => (
-            <div key={k} className="bg-slate-700/50 rounded-lg p-3">
-              <p className="text-xs text-slate-400 mb-1">{k}</p>
+            <div key={k} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+              <p className="text-xs text-gray-500 mb-1">{k}</p>
               <Badge level={String(v).toLowerCase()} />
             </div>
           ))}
@@ -105,45 +111,64 @@ function ResultPanel({ result, title }) {
   );
 }
 
-function PolicyResultPanel({ result }) {
+function SkeletonBlock({ h = 'h-32', className = '' }) {
+  return <div className={`bg-gray-100 border border-gray-100 rounded-xl animate-pulse ${h} ${className}`} />;
+}
+
+function PolicyResultPanel({ result, loading }) {
+  if (loading) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm h-full">
+        <div className="w-40 h-4 bg-gray-100 rounded mb-4" />
+        <div className="grid grid-cols-2 gap-3">
+          <SkeletonBlock h="h-16" />
+          <SkeletonBlock h="h-16" />
+          <SkeletonBlock h="h-16" />
+          <SkeletonBlock h="h-16" />
+        </div>
+        <SkeletonBlock h="h-12" />
+        <SkeletonBlock h="h-20" />
+      </div>
+    );
+  }
   if (!result) return null;
   const diff = result.efficiency_change;
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-slate-300">Policy Simulation Result</h3>
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-gray-700">Policy Simulation Result</h3>
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-slate-700/50 rounded-lg p-3">
-          <p className="text-xs text-slate-400 mb-1">Before Occupancy</p>
-          <p className="text-lg font-bold text-white">{result.current_state?.occupancy_percent ?? '—'}%</p>
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+          <p className="text-xs text-gray-500 mb-1">Before Occupancy</p>
+          <p className="text-lg font-bold text-gray-900">{result.current_state?.occupancy_percent ?? '—'}%</p>
         </div>
-        <div className="bg-slate-700/50 rounded-lg p-3">
-          <p className="text-xs text-slate-400 mb-1">After Occupancy</p>
-          <p className="text-lg font-bold text-blue-400">{result.simulated_state?.occupancy_percent ?? '—'}%</p>
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+          <p className="text-xs text-gray-500 mb-1">After Occupancy</p>
+          <p className="text-lg font-bold text-blue-600">{result.simulated_state?.occupancy_percent ?? '—'}%</p>
         </div>
-        <div className="bg-slate-700/50 rounded-lg p-3">
-          <p className="text-xs text-slate-400 mb-1">Before Violations</p>
-          <p className="text-lg font-bold text-white">{result.current_state?.violations ?? '—'}</p>
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+          <p className="text-xs text-gray-500 mb-1">Before Violations</p>
+          <p className="text-lg font-bold text-gray-900">{result.current_state?.violations ?? '—'}</p>
         </div>
-        <div className="bg-slate-700/50 rounded-lg p-3">
-          <p className="text-xs text-slate-400 mb-1">After Violations</p>
-          <p className="text-lg font-bold text-blue-400">{result.simulated_state?.violations ?? '—'}</p>
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+          <p className="text-xs text-gray-500 mb-1">After Violations</p>
+          <p className="text-lg font-bold text-blue-600">{result.simulated_state?.violations ?? '—'}</p>
         </div>
       </div>
 
       {result.efficiency_score != null && <ScoreBar score={result.efficiency_score} />}
 
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-400">Efficiency Change:</span>
-        <span className={`text-sm font-bold ${diff >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <span className="text-xs text-gray-500">Efficiency Change:</span>
+        <span className={`text-sm font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
           {diff >= 0 ? '+' : ''}{(diff * 100).toFixed(1)}%
         </span>
       </div>
 
       {result.actions && result.actions.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-purple-400 mb-2">📋 Policy Effects</p>
+          <p className="text-xs font-semibold text-purple-600 mb-2">📋 Policy Effects</p>
           {result.actions.map((a, i) => (
-            <p key={i} className="text-xs text-slate-300 bg-slate-700/40 rounded p-2 mb-1">• {a}</p>
+            <p key={i} className="text-xs text-gray-600 bg-gray-50 rounded p-2 mb-1 border border-gray-100">• {a}</p>
           ))}
         </div>
       )}
@@ -238,38 +263,40 @@ export default function SimulatorPage() {
     setAreas(prev => prev.filter((_, idx) => idx !== i));
   }
 
-  const inputCls = "w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition";
-  const labelCls = "block text-xs font-medium text-slate-400 mb-1";
+  const inputCls = "w-full bg-white border border-gray-300 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition shadow-sm";
+  const labelCls = "block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider";
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center shadow-sm">
+              <HiLightningBolt className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Policy Simulator</h1>
-              <p className="text-slate-400 text-sm">Simulate parking policy changes and predict outcomes</p>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Policy Simulator</h1>
+              <p className="text-gray-500 text-sm">Simulate parking policy changes and predict outcomes</p>
             </div>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-900/30 border border-blue-700/40 rounded-full text-xs text-blue-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-[10px] font-bold text-blue-600 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
             Rule-based engine — ML integration ready
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-slate-800 rounded-xl p-1 mb-8 w-fit border border-slate-700">
-          {[['single', 'Single Area'], ['multi', 'Multi-Area'], ['policy', 'Policy Test']].map(([v, l]) => (
+        <div className="flex gap-1 bg-gray-200/50 rounded-xl p-1 mb-8 w-fit border border-gray-200 shadow-sm">
+          {[
+            ['single', 'Single Area', <FaPlay className="text-[10px]" />], 
+            ['multi', 'Multi-Area', <HiCollection className="text-lg" />], 
+            ['policy', 'Policy Test', <HiBeaker className="text-lg" />]
+          ].map(([v, l, icon]) => (
             <button key={v} onClick={() => setTab(v)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${tab === v ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:text-white'}`}>
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === v ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-700'}`}>
+              {icon}
               {l}
             </button>
           ))}
@@ -278,8 +305,8 @@ export default function SimulatorPage() {
         {/* ── SINGLE AREA TAB ── */}
         {tab === 'single' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
-              <h2 className="text-sm font-semibold text-slate-300">Area Parameters</h2>
+            <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 shadow-sm">
+              <h2 className="text-sm font-bold text-gray-700">Area Parameters</h2>
               <div>
                 <label className={labelCls}>Area Name</label>
                 <input className={inputCls} value={single.area} onChange={e => setSingle(s => ({ ...s, area: e.target.value }))} />
@@ -289,8 +316,8 @@ export default function SimulatorPage() {
                   <label className={labelCls}>Occupancy %</label>
                   <input type="number" min="0" max="100" className={inputCls} value={single.occupancy}
                     onChange={e => setSingle(s => ({ ...s, occupancy: e.target.value }))} />
-                  <div className="mt-1 w-full bg-slate-700 rounded-full h-1">
-                    <div className="h-1 rounded-full bg-blue-500 transition-all" style={{ width: `${single.occupancy}%` }} />
+                  <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+                    <div className="h-1.5 rounded-full bg-blue-500 transition-all shadow-sm shadow-blue-200" style={{ width: `${single.occupancy}%` }} />
                   </div>
                 </div>
                 <div>
@@ -309,25 +336,25 @@ export default function SimulatorPage() {
                     onChange={e => setSingle(s => ({ ...s, capacity: e.target.value }))} />
                 </div>
               </div>
-              {singleError && <p className="text-xs text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg p-3">{singleError}</p>}
+              {singleError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3 font-medium">{singleError}</p>}
               <button onClick={runSingle} disabled={singleLoading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-900/30">
-                {singleLoading ? '⏳ Running...' : '▶ Run Simulation'}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center gap-2">
+                {singleLoading ? (
+                  <HiRefresh className="animate-spin text-lg" />
+                ) : (
+                  <HiPlay className="text-lg" />
+                )}
+                {singleLoading ? 'Running...' : 'Run Simulation'}
               </button>
             </div>
             <div>
-              {singleLoading && (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-sm text-slate-400">Running simulation…</p>
-                  </div>
-                </div>
-              )}
-              {!singleLoading && <ResultPanel result={singleResult} title="Simulation Result" />}
+              <PolicyResultPanel result={singleResult} loading={singleLoading} title="Simulation Result" />
               {!singleLoading && !singleResult && !singleError && (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 flex items-center justify-center h-full">
-                  <p className="text-sm text-slate-500">Configure parameters and run simulation</p>
+                <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <HiDocumentReport className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                    <p className="text-sm font-medium text-gray-400">Configure parameters and run simulation</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -337,16 +364,16 @@ export default function SimulatorPage() {
         {/* ── MULTI AREA TAB ── */}
         {tab === 'multi' && (
           <div className="space-y-6">
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-slate-300">Areas Configuration</h2>
-                <button onClick={addArea} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg transition">
+                <h2 className="text-sm font-bold text-gray-700">Areas Configuration</h2>
+                <button onClick={addArea} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-lg transition border border-gray-200 uppercase tracking-widest">
                   + Add Area
                 </button>
               </div>
               <div className="space-y-3">
                 {areas.map((a, i) => (
-                  <div key={i} className="grid grid-cols-5 gap-3 items-end bg-slate-700/40 rounded-lg p-3">
+                  <div key={i} className="grid grid-cols-5 gap-3 items-end bg-gray-50 border border-gray-100 rounded-lg p-3">
                     <div>
                       <label className={labelCls}>Area Name</label>
                       <input className={inputCls} value={a.area} onChange={e => updateArea(i, 'area', e.target.value)} />
@@ -363,18 +390,34 @@ export default function SimulatorPage() {
                       <label className={labelCls}>Capacity</label>
                       <input type="number" min="1" className={inputCls} value={a.capacity} onChange={e => updateArea(i, 'capacity', e.target.value)} />
                     </div>
-                    <button onClick={() => removeArea(i)} className="py-2 px-3 bg-red-900/30 hover:bg-red-900/60 text-red-400 rounded-lg text-xs transition">✕</button>
+                    <button onClick={() => removeArea(i)} className="py-2 px-3 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded-lg text-xs font-bold transition uppercase">✕</button>
                   </div>
                 ))}
               </div>
-              {multiError && <p className="text-xs text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg p-3 mt-3">{multiError}</p>}
+              {multiError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3 mt-3 font-medium">{multiError}</p>}
               <button onClick={runMulti} disabled={multiLoading}
-                className="mt-4 w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 rounded-xl text-sm font-semibold transition-all">
+                className="mt-4 w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20 active:scale-95">
                 {multiLoading ? '⏳ Analyzing…' : '▶ Run Multi-Area Simulation'}
               </button>
             </div>
 
-            {multiResult && (
+            {multiLoading && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <SkeletonBlock h="h-20" />
+                  <SkeletonBlock h="h-20" />
+                  <SkeletonBlock h="h-20" />
+                  <SkeletonBlock h="h-20" />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <SkeletonBlock h="h-64" />
+                  <SkeletonBlock h="h-64" />
+                  <SkeletonBlock h="h-64" />
+                </div>
+              </div>
+            )}
+
+            {!multiLoading && multiResult && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
@@ -383,17 +426,19 @@ export default function SimulatorPage() {
                     ['Critical Areas', multiResult.summary?.critical_count, 'critical'],
                     ['Efficiency', `${Math.round((multiResult.efficiency_score || 0) * 100)}%`, null],
                   ].map(([label, val, level]) => (
-                    <div key={label} className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-                      <p className="text-xs text-slate-400 mb-1">{label}</p>
-                      {level ? <Badge level={String(val).toLowerCase()} /> : <p className="text-xl font-bold text-white">{val}</p>}
+                    <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                      <p className="text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">{label}</p>
+                      {level ? <Badge level={String(val).toLowerCase()} /> : <p className="text-xl font-black text-gray-900">{val}</p>}
                     </div>
                   ))}
                 </div>
                 {multiResult.reroute_suggestions && multiResult.reroute_suggestions.length > 0 && (
-                  <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-green-400 mb-3">🔀 Reroute Suggestions</p>
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <p className="text-xs font-black text-green-600 mb-3 uppercase tracking-widest flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-green-500" /> 🔀 Reroute Suggestions
+                    </p>
                     {multiResult.reroute_suggestions.map((s, i) => (
-                      <p key={i} className="text-xs text-slate-300 bg-slate-700/40 rounded p-2 mb-1">• {s.message}</p>
+                      <p key={i} className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-100 rounded p-2 mb-1">• {s.message}</p>
                     ))}
                   </div>
                 )}
@@ -412,8 +457,8 @@ export default function SimulatorPage() {
         {/* ── POLICY TEST TAB ── */}
         {tab === 'policy' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
-              <h2 className="text-sm font-semibold text-slate-300">Policy Configuration</h2>
+            <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 shadow-sm">
+              <h2 className="text-sm font-bold text-gray-700">Policy Configuration</h2>
               <div>
                 <label className={labelCls}>Policy Type</label>
                 <select className={inputCls} value={policy.type} onChange={e => { const pt = POLICY_TYPES.find(p => p.value === e.target.value); setPolicy(p => ({ ...p, type: e.target.value, paramVal: pt?.defaultVal || 20 })); }}>
@@ -424,7 +469,7 @@ export default function SimulatorPage() {
                 <label className={labelCls}>{selectedPolicy.paramLabel}</label>
                 <input type="number" className={inputCls} value={policy.paramVal} onChange={e => setPolicy(p => ({ ...p, paramVal: e.target.value }))} />
               </div>
-              <p className="text-xs font-semibold text-slate-400 pt-2 border-t border-slate-700">Current System State</p>
+              <p className="text-[10px] font-black text-gray-400 pt-4 border-t border-gray-100 uppercase tracking-widest">Current System State</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Occupancy %</label>
@@ -443,22 +488,20 @@ export default function SimulatorPage() {
                   <input type="number" min="1" className={inputCls} value={policy.capacity} onChange={e => setPolicy(p => ({ ...p, capacity: e.target.value }))} />
                 </div>
               </div>
-              {policyError && <p className="text-xs text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg p-3">{policyError}</p>}
+              {policyError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3 font-medium">{policyError}</p>}
               <button onClick={runPolicy} disabled={policyLoading}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 rounded-xl text-sm font-semibold transition-all">
+                className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-purple-600/20 active:scale-95">
                 {policyLoading ? '⏳ Simulating…' : '🔬 Test Policy'}
               </button>
             </div>
             <div>
-              {policyLoading && (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 flex items-center justify-center">
-                  <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-              {!policyLoading && <PolicyResultPanel result={policyResult} />}
+              <PolicyResultPanel result={policyResult} loading={policyLoading} />
               {!policyLoading && !policyResult && !policyError && (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 flex items-center justify-center h-full">
-                  <p className="text-sm text-slate-500">Select a policy type and run test</p>
+                <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <svg className="w-12 h-12 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.183.244l-.28.14a2 2 0 01-2.983-1.232l-.127-.508a2 2 0 01.31-1.638l1.373-2.06a2 2 0 00.31-1.638l-.127-.508a2 2 0 012.983-1.232l.28.14a2 2 0 001.183.244l1.933-.387a6 6 0 013.86-.517l.318-.158a6 6 0 003.86-.517l2.387.477a2 2 0 001.022.547l.484.242a2 2 0 011.132 1.132l.242.484a2 2 0 00.547 1.022l.477 2.387a2 2 0 01-.517 3.86l-.158.318a6 6 0 00-.517 3.86l.477 2.387a2 2 0 01-1.132 1.132l-.484-.242a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.183.244l-.28.14a2 2 0 01-2.983-1.232l-.127-.508a2 2 0 01.31-1.638l1.373-2.06a2 2 0 00.31-1.638l-.127-.508a2 2 0 012.983-1.232l.28.14a2 2 0 001.183.244l1.933-.387a6 6 0 013.86-.517l.318-.158a6 6 0 003.86-.517l2.387.477a2 2 0 001.022.547l.484.242a2 2 0 011.132 1.132l.242.484a2 2 0 00.547 1.022l.477 2.387a2 2 0 01-.517 3.86l-.158.318a6 6 0 00-.517 3.86l.477 2.387a2 2 0 01-1.132 1.132l-.484-.242a2 2 0 00-1.022-.547z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
+                    <p className="text-sm font-medium text-gray-400">Select a policy type and run test</p>
+                  </div>
                 </div>
               )}
             </div>

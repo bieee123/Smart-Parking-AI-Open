@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { 
+  HiX, HiInformationCircle, HiClipboardList, HiPencilAlt, 
+  HiSave, HiRefresh, HiChevronRight, HiExclamation 
+} from 'react-icons/hi';
+import { FaCar, FaMotorcycle, FaTruck } from 'react-icons/fa';
 import { parkingApi, cameraApi } from '../services/parking';
 
 // Status options for editing
@@ -102,23 +107,12 @@ export default function SlotModal({ slot, onClose, onUpdate }) {
     { 
       id: 'details', 
       label: 'Details', 
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-          <rect x="4" y="3" width="16" height="18" rx="2"/>
-          <path d="M8 7h8M8 11h8M8 15h5"/>
-        </svg>
-      )
+      icon: <HiInformationCircle className="text-lg" />
     },
     { 
       id: 'logs', 
       label: 'Logs', 
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-          <path d="M3 5h18M3 10h18M3 15h12M3 20h8"/>
-          <circle cx="19" cy="17.5" r="3"/>
-          <path d="M19 16v2M19 20v.01"/>
-        </svg>
-      )
+      icon: <HiClipboardList className="text-lg" />
     },
   ];
 
@@ -156,9 +150,7 @@ export default function SlotModal({ slot, onClose, onUpdate }) {
             className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
             aria-label="Close modal"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <HiX className="text-xl" />
           </button>
         </div>
 
@@ -212,37 +204,17 @@ export default function SlotModal({ slot, onClose, onUpdate }) {
                   <span className="text-sm font-medium text-gray-900 capitalize flex items-center gap-1.5">
                     {slot.vehicle_type === 'motorcycle' ? (
                       <>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                          <circle cx="5.5" cy="15.5" r="2.5"/>
-                          <circle cx="18.5" cy="15.5" r="2.5"/>
-                          <path d="M8 15.5h7"/>
-                          <path d="M15 6h2l2 4.5"/>
-                          <path d="M9 6l3 4.5h4.5"/>
-                          <path d="M9 6H7l-1.5 4"/>
-                        </svg>
+                        <FaMotorcycle className="text-lg text-primary-600" />
                         Motorcycle
                       </>
                     ) : slot.vehicle_type === 'car' ? (
                       <>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                          <path d="M7 17H5a2 2 0 01-2-2v-3l2-6h14l2 6v3a2 2 0 01-2 2h-2"/>
-                          <path d="M7 17h10"/>
-                          <circle cx="7" cy="17" r="2"/>
-                          <circle cx="17" cy="17" r="2"/>
-                          <path d="M5 12h14"/>
-                          <path d="M8 6l-1 6M16 6l1 6"/>
-                        </svg>
+                        <FaCar className="text-lg text-primary-600" />
                         Car
                       </>
                     ) : slot.vehicle_type === 'truck' ? (
                       <>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                          <rect x="1" y="6" width="13" height="11" rx="1"/>
-                          <path d="M14 9h4l3 4v4h-7V9z"/>
-                          <circle cx="5.5" cy="18.5" r="1.5"/>
-                          <circle cx="18.5" cy="18.5" r="1.5"/>
-                          <path d="M14 13h4"/>
-                        </svg>
+                        <FaTruck className="text-lg text-primary-600" />
                         Truck
                       </>
                     ) : slot.vehicle_type}
@@ -306,10 +278,7 @@ export default function SlotModal({ slot, onClose, onUpdate }) {
                     onClick={() => setEditMode(true)}
                     className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors text-sm flex items-center justify-center gap-1.5"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
+                    <HiPencilAlt className="text-lg" />
                     Edit Slot
                   </button>
                 ) : (
@@ -381,18 +350,12 @@ export default function SlotModal({ slot, onClose, onUpdate }) {
                       >
                         {saving ? (
                           <>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 animate-spin">
-                              <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                            </svg>
+                            <HiRefresh className="text-lg animate-spin" />
                             Saving...
                           </>
                         ) : (
                           <>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-                              <path d="M17 21v-8H7v8"/>
-                              <path d="M7 3v5h8"/>
-                            </svg>
+                            <HiSave className="text-lg" />
                             Save
                           </>
                         )}

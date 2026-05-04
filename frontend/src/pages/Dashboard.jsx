@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { formatDate } from '../utils/helpers';
+import { 
+  HiHashtag, HiMinusCircle, HiCheckCircle, HiChartPie, 
+  HiVideoCamera, HiMap, HiExclamation, HiChevronRight 
+} from 'react-icons/hi';
+import { FaParking, FaCar } from 'react-icons/fa';
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
@@ -31,15 +36,43 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-10 bg-gray-200 rounded w-48" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 bg-gray-200 rounded-lg" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="space-y-2">
+          <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
+          <div className="h-4 bg-gray-100 rounded w-64 animate-pulse" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-3">
+              <div className="flex justify-between items-start">
+                <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
+                <div className="w-10 h-10 bg-gray-50 rounded-full animate-pulse" />
+              </div>
+              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+          <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-24 bg-gray-50 rounded-xl animate-pulse border border-gray-100" />
+            <div className="h-24 bg-gray-50 rounded-xl animate-pulse border border-gray-100" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+          <div className="h-6 w-40 bg-gray-200 rounded animate-pulse" />
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex gap-4 border-b border-gray-50 pb-4">
+                <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
+                <div className="h-4 w-32 bg-gray-50 rounded animate-pulse" />
+                <div className="h-4 flex-1 bg-gray-50 rounded animate-pulse" />
+              </div>
             ))}
           </div>
-          <div className="h-64 bg-gray-200 rounded-lg" />
         </div>
       </div>
     );
@@ -50,9 +83,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-lg">
           <div className="flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            <HiExclamation className="text-xl" />
             <p className="font-medium">{error}</p>
           </div>
           <p className="text-sm mt-1 text-amber-700">
@@ -84,26 +115,10 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Slots" value={summary.total_slots} icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11V7a2 2 0 012-2h10a2 2 0 012 2v4m-9 4h4m-6 0a2 2 0 00-2 2v2a2 2 0 002 2h8a2 2 0 002-2v-2a2 2 0 00-2-2H9z" />
-          </svg>
-        } color="bg-blue-500" />
-        <StatCard title="Occupied" value={summary.occupied} icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7.5 20V4h7a4.5 4.5 0 010 9h-7" />
-          </svg>
-        } color="bg-red-500" />
-        <StatCard title="Available" value={summary.available} icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        } color="bg-green-500" />
-        <StatCard title="Occupancy Rate" value={`${occupancyRate}%`} icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-        } color="bg-purple-500" />
+        <StatCard title="Total Slots" value={summary.total_slots} icon={<HiHashtag />} color="bg-blue-500" />
+        <StatCard title="Occupied" value={summary.occupied} icon={<HiMinusCircle />} color="bg-red-500" />
+        <StatCard title="Available" value={summary.available} icon={<HiCheckCircle />} color="bg-green-500" />
+        <StatCard title="Occupancy Rate" value={`${occupancyRate}%`} icon={<HiChartPie />} color="bg-purple-500" />
       </div>
 
       {/* Quick Actions */}
@@ -114,10 +129,8 @@ export default function Dashboard() {
             to="/live-camera"
             className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
           >
-            <span className="text-3xl mr-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
+            <span className="text-3xl mr-4 text-blue-600">
+              <HiVideoCamera />
             </span>
             <div>
               <h3 className="font-semibold text-gray-900">Live Camera</h3>
@@ -128,10 +141,8 @@ export default function Dashboard() {
             to="/map-parking"
             className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
           >
-            <span className="text-3xl mr-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
+            <span className="text-3xl mr-4 text-green-600">
+              <HiMap />
             </span>
             <div>
               <h3 className="font-semibold text-gray-900">Parking Map</h3>
@@ -200,26 +211,10 @@ function PlaceholderDashboard({ recentLogs }) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Slots" value="—" icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11V7a2 2 0 012-2h10a2 2 0 012 2v4m-9 4h4m-6 0a2 2 0 00-2 2v2a2 2 0 002 2h8a2 2 0 002-2v-2a2 2 0 00-2-2H9z" />
-          </svg>
-        } color="bg-blue-500" />
-        <StatCard title="Occupied" value="—" icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 4h8m-8 4h4m-9 4h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        } color="bg-red-500" />
-        <StatCard title="Available" value="—" icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        } color="bg-green-500" />
-        <StatCard title="Occupancy Rate" value="—" icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-        } color="bg-purple-500" />
+        <StatCard title="Total Slots" value="—" icon={<HiHashtag />} color="bg-blue-500" />
+        <StatCard title="Occupied" value="—" icon={<HiMinusCircle />} color="bg-red-500" />
+        <StatCard title="Available" value="—" icon={<HiCheckCircle />} color="bg-green-500" />
+        <StatCard title="Occupancy Rate" value="—" icon={<HiChartPie />} color="bg-purple-500" />
       </div>
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>

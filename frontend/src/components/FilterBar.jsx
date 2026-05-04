@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { HiSearch, HiX } from 'react-icons/hi';
 
 // Zone options
 const ZONES = ['all', 'A', 'B', 'C'];
@@ -85,10 +86,7 @@ export default function FilterBar({ zone, setZone, vehicleType, setVehicleType, 
               type="submit"
               className="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="M21 21l-4.35-4.35"/>
-              </svg>
+              <HiSearch className="w-4 h-4" />
             </button>
             {(search || searchInput) && (
               <button
@@ -97,9 +95,9 @@ export default function FilterBar({ zone, setZone, vehicleType, setVehicleType, 
                   setSearchInput('');
                   setSearch('');
                 }}
-                className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-600 text-sm rounded-lg transition-colors"
+                className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-600 text-sm rounded-lg transition-colors flex items-center justify-center"
               >
-                ✕
+                <HiX />
               </button>
             )}
           </form>

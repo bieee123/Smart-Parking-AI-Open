@@ -30,7 +30,7 @@ function getColor(value) {
 export default function ViolationHeatmap({ data, rows = 5, cols = 5, title }) {
   return (
     <div className="w-full">
-      {title && <h3 className="text-sm font-semibold text-gray-700 mb-2">{title}</h3>}
+      {title && <h3 className="text-lg font-semibold text-gray-700 mb-4">{title}</h3>}
 
       {/* Column headers */}
       <div className="flex">

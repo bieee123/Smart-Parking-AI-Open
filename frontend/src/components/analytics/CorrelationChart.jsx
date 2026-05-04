@@ -15,7 +15,7 @@ export default function CorrelationChart({ data, title }) {
 
   return (
     <div className="w-full">
-      {title && <h3 className="text-sm font-semibold text-gray-700 mb-2">{title}</h3>}
+      {title && <h3 className="text-lg font-semibold text-gray-700 mb-4">{title}</h3>}
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{ minWidth: 300 }}>
         {data.map((d, i) => {
           const y = padding.top + i * rowH;

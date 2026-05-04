@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { 
+  HiChartBar, HiRefresh, HiClock, HiTrendingUp, HiExclamation, 
+  HiArrowRight, HiMinusCircle, HiCheckCircle 
+} from 'react-icons/hi';
 import OccupancyChart from '../components/analytics/OccupancyChart';
 import PredictedDemandChart from '../components/analytics/PredictedDemandChart';
 import CorrelationChart from '../components/analytics/CorrelationChart';
@@ -9,11 +13,21 @@ import EfficiencyStats from '../components/analytics/EfficiencyStats';
 const API = 'http://localhost:8000/api';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
-function SkeletonCard({ className = '' }) {
+function SkeletonCard({ className = '', h = 'h-56' }) {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-5 animate-pulse ${className}`}>
-      <div className="h-4 bg-gray-200 rounded w-40 mb-4" />
-      <div className="h-48 bg-gray-200 rounded" />
+    <div className={`bg-white rounded-xl border border-gray-200 p-6 animate-pulse shadow-sm ${className}`}>
+      <div className="flex justify-between items-center mb-6">
+        <div className="h-5 bg-gray-200 rounded w-40" />
+        <div className="flex gap-2">
+          <div className="h-6 bg-gray-100 rounded w-16" />
+          <div className="h-6 bg-gray-100 rounded w-16" />
+        </div>
+      </div>
+      <div className={`${h} bg-gray-50 rounded-lg flex items-end gap-2 p-4 border border-gray-50`}>
+        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+          <div key={i} className="bg-gray-200/50 rounded-t w-full shadow-inner" style={{ height: `${Math.random() * 60 + 20}%` }} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -23,7 +37,7 @@ function ErrorBanner({ errors, onRetry }) {
   if (!errors || errors.length === 0) return null;
   return (
     <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-      <span className="text-red-500 text-lg">⚠️</span>
+      <HiExclamation className="text-red-500 text-xl" />
       <div className="flex-1">
         <p className="text-sm font-medium text-red-800">Some analytics data failed to load</p>
         <ul className="text-xs text-red-600 mt-1 list-disc list-inside">
@@ -37,26 +51,10 @@ function ErrorBanner({ errors, onRetry }) {
 
 // ── Efficiency Icon helpers ───────────────────────────────────────────────────
 const ICONS = {
-  utilization: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11V7a2 2 0 012-2h10a2 2 0 012 2v4m-9 4h4m-6 0a2 2 0 00-2 2v2a2 2 0 002 2h8a2 2 0 002-2v-2a2 2 0 00-2-2H9z" />
-    </svg>
-  ),
-  turnover: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
-  ),
-  clock: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  trend: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-    </svg>
-  ),
+  utilization: <HiChartBar />,
+  turnover: <HiRefresh />,
+  clock: <HiClock />,
+  trend: <HiTrendingUp />,
 };
 
 // ── Data transformers ─────────────────────────────────────────────────────────
@@ -242,10 +240,24 @@ export default function AnalyticsDashboard() {
 
       {loading ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><SkeletonCard /><SkeletonCard /></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><SkeletonCard /><SkeletonCard /></div>
-          <SkeletonCard className="h-40" />
-          <SkeletonCard />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SkeletonCard h="h-40" />
+            <SkeletonCard h="h-40" />
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse shadow-sm">
+             <div className="h-5 bg-gray-200 rounded w-48 mb-6" />
+             <div className="h-72 bg-gray-50 rounded-xl border border-gray-50" />
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse shadow-sm">
+             <div className="h-5 bg-gray-200 rounded w-48 mb-6" />
+             <div className="grid grid-cols-5 gap-4">
+               {[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-gray-50 rounded-lg border border-gray-50" />)}
+             </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-6">

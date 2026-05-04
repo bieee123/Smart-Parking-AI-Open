@@ -1,10 +1,15 @@
+import { 
+  HiCheckCircle, HiMinusCircle, HiBookmark, 
+  HiBan, HiExclamationCircle 
+} from 'react-icons/hi';
+
 // Legend component showing status color meanings
 const STATUS_LEGEND = [
-  { color: 'bg-green-500', label: 'Empty', description: 'Available for parking' },
-  { color: 'bg-red-500', label: 'Occupied', description: 'Vehicle currently parked' },
-  { color: 'bg-blue-500', label: 'Reserved', description: 'Reserved slot' },
-  { color: 'bg-yellow-500', label: 'Offline', description: 'Camera/sensor offline' },
-  { color: 'bg-orange-500', label: 'Error', description: 'System error' },
+  { color: 'bg-green-500', label: 'Empty', description: 'Available for parking', icon: <HiCheckCircle /> },
+  { color: 'bg-red-500', label: 'Occupied', description: 'Vehicle currently parked', icon: <HiMinusCircle /> },
+  { color: 'bg-blue-500', label: 'Reserved', description: 'Reserved slot', icon: <HiBookmark /> },
+  { color: 'bg-yellow-500', label: 'Offline', description: 'Camera/sensor offline', icon: <HiBan /> },
+  { color: 'bg-orange-500', label: 'Error', description: 'System error', icon: <HiExclamationCircle /> },
 ];
 
 export default function Legend() {
@@ -14,7 +19,9 @@ export default function Legend() {
       <div className="flex flex-wrap gap-4">
         {STATUS_LEGEND.map((item) => (
           <div key={item.label} className="flex items-center gap-2">
-            <div className={`w-4 h-4 rounded ${item.color} shadow-sm`} />
+            <div className={`w-8 h-8 rounded-lg ${item.color} shadow-sm flex items-center justify-center text-white text-lg`}>
+              {item.icon}
+            </div>
             <div>
               <span className="text-sm font-medium text-gray-700">{item.label}</span>
               <span className="text-xs text-gray-400 ml-1.5">({item.description})</span>

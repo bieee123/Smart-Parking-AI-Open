@@ -1,5 +1,6 @@
 // ParkingSlot — Individual slot card component
 // Matches MapParking aspect-square box style with extra detail overlays
+import { FaCar, FaMotorcycle, FaTruck } from 'react-icons/fa';
 
 // Map status to color classes (no border, like MapParking)
 const STATUS_COLORS = {
@@ -12,35 +13,9 @@ const STATUS_COLORS = {
 
 // Vehicle type icons
 const VEHICLE_ICONS = {
-  car: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <path d="M7 17H5a2 2 0 01-2-2v-3l2-6h14l2 6v3a2 2 0 01-2 2h-2"/>
-      <path d="M7 17h10"/>
-      <circle cx="7" cy="17" r="2"/>
-      <circle cx="17" cy="17" r="2"/>
-      <path d="M5 12h14"/>
-      <path d="M8 6l-1 6M16 6l1 6"/>
-    </svg>
-  ),
-  motorcycle: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <circle cx="5.5" cy="15.5" r="2.5"/>
-      <circle cx="18.5" cy="15.5" r="2.5"/>
-      <path d="M8 15.5h7"/>
-      <path d="M15 6h2l2 4.5"/>
-      <path d="M9 6l3 4.5h4.5"/>
-      <path d="M9 6H7l-1.5 4"/>
-    </svg>
-  ),
-  truck: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <rect x="1" y="6" width="13" height="11" rx="1"/>
-      <path d="M14 9h4l3 4v4h-7V9z"/>
-      <circle cx="5.5" cy="18.5" r="1.5"/>
-      <circle cx="18.5" cy="18.5" r="1.5"/>
-      <path d="M14 13h4"/>
-    </svg>
-  ),
+  car: <FaCar className="w-3 h-3" />,
+  motorcycle: <FaMotorcycle className="w-3 h-3" />,
+  truck: <FaTruck className="w-3 h-3" />,
 };
 
 export default function ParkingSlot({ slot, onClick }) {
