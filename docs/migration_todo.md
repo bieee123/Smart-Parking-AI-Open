@@ -31,6 +31,12 @@ Pastikan seluruh halaman berikut sudah mengambil data dari API Real-Time:
 - [ ] **Executive Summary**: Update generator laporan agar menghitung angka asli (Total Kendaraan, Pelanggaran Terdeteksi) dari database.
 - [ ] **Notification Center**: Pastikan push notification (misal: "Plat Terblokir Terdeteksi") berasal dari hasil LPR nyata.
 
+## 🟫 Phase 6: Multi-Model Ensemble Implementation (Optimization)
+- [ ] **Brightness Detector Module**: Implementasikan modul analisis pencahayaan di `ai-service`.
+- [ ] **Parallel Inference Engine**: Setup `ThreadPoolExecutor` untuk menjalankan `vehicle_model` dan `bdd100k` secara simultan.
+- [ ] **NMS Merge Logic**: Buat fungsi untuk menggabungkan hasil deteksi dari berbagai model dan menghapus duplikat.
+- [ ] **Dynamic Switching**: Pastikan sistem otomatis memilih model terbaik berdasarkan kondisi frame.
+
 ---
 *Status: Planning Phase*
 *Target: Full Real-Time Integration*
