@@ -11,11 +11,12 @@ An intelligent parking management system with AI-powered vehicle detection, real
 - **Redis:** Caching layer
 - **Authentication:** JWT + bcrypt
 
-### Frontend
-- **Framework:** React 18 + Vite
-- **Styling:** Tailwind CSS
-- **Routing:** React Router v6
-- **API Communication:** Fetch API
+### AI Service (Microservice)
+- **Runtime:** Python 3.10+ (FastAPI)
+- **Engine:** ONNX Runtime (CPU/GPU)
+- **Models:** YOLOv8 (Vehicle, LPR, Parking Slot, Crowd Detection)
+- **Processing:** OpenCV for frame-by-frame video analytics
+- **Streaming:** Server-Sent Events (SSE) for real-time inference results
 
 ---
 
@@ -23,15 +24,6 @@ An intelligent parking management system with AI-powered vehicle detection, real
 
 ```
 Smart-Parking/
-├── backend/                    # Backend API server
-│   ├── src/
-│   │   ├── config/
-│   │   │   └── env.js         # Environment configuration
-│   │   ├── db/
-│   │   │   ├── postgres.js    # PostgreSQL + Drizzle connection
-│   │   │   ├── mongo.js       # MongoDB connection
-│   │   │   ├── redis.js       # Redis connection & cache helpers
-│   │   │   └── drizzle/
 │   │   │       └── schema.js  # Database schema definitions
 │   │   ├── routes/
 │   │   │   ├── auth.routes.js

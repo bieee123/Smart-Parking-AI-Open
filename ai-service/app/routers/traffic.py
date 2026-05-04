@@ -1,4 +1,9 @@
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
+import os
+import cv2
+import tempfile
+import shutil
 import logging
 import asyncio
 import json
@@ -9,6 +14,73 @@ from app.services.stream_processor import stream_processor
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Traffic Analysis"])
+
+@router.post("/traffic/upload")
+async def analyze_video_upload(video: UploadFile = File(...)):
+    """Process an uploaded video file frame-by-frame and return aggregated AI results."""
+    if not video.content_type.startswith("video/"):
+        raise HTTPException(status_code=400, detail="File must be a video.")
+
+    # Save to a temporary file
+    temp_dir = tempfile.mkdtemp()
+    file_path = os.path.join(temp_dir, video.filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(video.file, buffer)
+
+        # Open video with OpenCV
+        cap = cv2.VideoCapture(file_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        
+        # Analyze every 'step' frames to save time (e.g., every 1 second)
+        step = max(1, fps)
+        
+        results = []
+        frame_idx = 0
+        
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            if frame_idx % step == 0:
+                # Convert frame to bytes for traffic_analyzer
+                _, img_encoded = cv2.imencode('.jpg', frame)
+                analysis = traffic_analyzer.analyze_frame(img_encoded.tobytes())
+                results.append(analysis)
+            
+            frame_idx += 1
+
+        cap.release()
+        
+        # Aggregate results
+        if not results:
+            return {"success": False, "detail": "No frames processed"}
+
+        total_v = sum(r['vehicle_count'] for r in results)
+        avg_v = total_v // len(results)
+        
+        # Determine average density
+        densities = [r['density_level'] for r in results]
+        most_common_density = max(set(densities), key=densities.count)
+
+        return {
+            "success": True,
+            "total_vehicles": total_v,
+            "avg_vehicles_per_sec": avg_v,
+            "avg_density": most_common_density,
+            "frames_processed": len(results),
+            "sample_plate": results[0].get("last_plate", "N/A")
+        }
+
+    except Exception as e:
+        logger.error(f"Video processing failed: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "detail": str(e)})
+    finally:
+        # Cleanup
+        shutil.rmtree(temp_dir)
 
 @router.post("/traffic/analyze")
 async def analyze_traffic(image: UploadFile = File(...)):

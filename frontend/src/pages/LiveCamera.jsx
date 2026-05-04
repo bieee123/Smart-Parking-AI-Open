@@ -11,8 +11,12 @@ export default function LiveCamera() {
   const [selectedStreetCamera, setSelectedStreetCamera] = useState({ id: 'ATCS-001', name: 'ATCS Medan - Simpang Pos', status: 'online' });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('parking'); // 'parking' or 'street'
+  const [sourceMode, setSourceMode] = useState('live'); // 'live' or 'upload'
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [streamResolving, setStreamResolving] = useState(false);
   const videoRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Mock Street Cameras with real URL for the first one
   const streetCameras = [
@@ -132,7 +136,52 @@ export default function LiveCamera() {
     };
 
     return () => eventSource.close();
-  }, [activeTab, selectedStreetCamera]);
+  }, [activeTab, selectedStreetCamera, sourceMode]);
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(10); // Start progress
+
+      // Mock progress simulation until real-time progress endpoint is ready
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => (prev < 90 ? prev + 5 : prev));
+      }, 1000);
+
+      const response = await fetch('http://localhost:9000/ai/traffic/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      // Update traffic data with overall results
+      setTrafficData({
+        vehicle_count: result.total_vehicles || 0,
+        density_level: result.avg_density || 'medium',
+        recommendation: `Analysis complete. Total ${result.total_vehicles} vehicles processed.`,
+        last_plate: result.sample_plate || 'N/A'
+      });
+
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 2000);
+
+    } catch (err) {
+      console.error("Video upload failed", err);
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   if (loading) {
     return (
@@ -187,42 +236,151 @@ export default function LiveCamera() {
         </button>
       </div>
 
+      {/* Source Mode Toggle (Live vs Video File) - Premium Design */}
+      <div className="flex items-center justify-center mb-10">
+        <div className="bg-white/80 backdrop-blur-md p-1.5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex gap-2">
+          <button
+            onClick={() => setSourceMode('live')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              sourceMode === 'live'
+                ? 'bg-green-500 text-white shadow-lg shadow-green-200'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${sourceMode === 'live' ? 'bg-white animate-pulse' : 'bg-gray-300'}`} />
+            LIVE CCTV
+          </button>
+          <button
+            onClick={() => setSourceMode('upload')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              sourceMode === 'upload'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            VIDEO ANALYTICS
+          </button>
+        </div>
+      </div>
+
+      {/* Source Mode Toggle (Live vs Video File) */}
+      <div className="flex items-center justify-between mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="flex items-center gap-4">
+          <div className={`p-2 rounded-lg ${sourceMode === 'live' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+            {sourceMode === 'live' ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">{sourceMode === 'live' ? 'Live CCTV Mode' : 'Video Analytics Mode'}</h3>
+            <p className="text-xs text-gray-500">{sourceMode === 'live' ? 'Streaming real-time from active cameras' : 'Analyze local video files for historical data'}</p>
+          </div>
+        </div>
+        
+        <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+          <button
+            onClick={() => setSourceMode('live')}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${sourceMode === 'live' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Live Feed
+          </button>
+          <button
+            onClick={() => setSourceMode('upload')}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${sourceMode === 'upload' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Upload File
+          </button>
+        </div>
+      </div>
+
       {activeTab === 'parking' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
           {/* Camera List */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Cameras</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {sourceMode === 'live' ? 'Cameras' : 'Upload Video'}
+                </h2>
               </div>
-              <div className="divide-y divide-gray-200">
-                {cameras.map((camera) => (
-                  <button
-                    key={camera.id}
-                    onClick={() => setSelectedCamera(camera)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${selectedCamera?.id === camera.id ? 'bg-primary-50' : ''
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">{camera.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {camera.status === 'online' ? (
-                            <span className="text-green-600">● Online</span>
-                          ) : (
-                            <span className="text-red-500">● Offline</span>
-                          )}
-                        </p>
-                        {camera.linked_slot && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Linked: Slot {camera.linked_slot}
+              
+              {sourceMode === 'live' ? (
+                <div className="divide-y divide-gray-200">
+                  {cameras.map((camera) => (
+                    <button
+                      key={camera.id}
+                      onClick={() => setSelectedCamera(camera)}
+                      className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${selectedCamera?.id === camera.id ? 'bg-primary-50' : ''
+                        }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{camera.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {camera.status === 'online' ? (
+                              <span className="text-green-600">● Online</span>
+                            ) : (
+                              <span className="text-red-500">● Offline</span>
+                            )}
                           </p>
-                        )}
+                          {camera.linked_slot && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              Linked: Slot {camera.linked_slot}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group"
+                  >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                    />
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
                     </div>
-                  </button>
-                ))}
-              </div>
+                    <p className="text-sm font-bold text-gray-900">Click or drag video to analyze</p>
+                    <p className="text-xs text-gray-500 mt-1">MP4, AVI, or MKV (Max 500MB)</p>
+                  </div>
+
+                  {isUploading && (
+                    <div className="mt-6 space-y-2">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-blue-600 animate-pulse">Processing Video...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-600 transition-all duration-300 shadow-[0_0_8px_rgba(37,99,235,0.5)]" 
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-gray-400 italic text-center">AI is frame-counting vehicles & detecting plates...</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Recent Camera Logs */}
@@ -283,7 +441,33 @@ export default function LiveCamera() {
                   </span>
                 </div>
 
-                {selectedCamera ? (
+                {sourceMode === 'upload' && trafficData?.recommendation?.includes('complete') ? (
+                  <div className="text-center animate-in zoom-in duration-500">
+                    <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-400/30">
+                      <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Analysis Result</h3>
+                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto mt-6">
+                      <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Total Vehicles</p>
+                        <p className="text-2xl font-black text-blue-400">{trafficData.vehicle_count}</p>
+                      </div>
+                      <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Avg Density</p>
+                        <p className="text-2xl font-black text-green-400">{trafficData.density_level.toUpperCase()}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-8 italic">Data has been synchronized to global analytics</p>
+                    <button 
+                      onClick={() => setTrafficData(null)}
+                      className="mt-6 text-xs text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest border-b border-blue-400/30 pb-1"
+                    >
+                      Clear & Upload New
+                    </button>
+                  </div>
+                ) : selectedCamera ? (
                   <div className="text-center text-white">
                     <div className="relative mb-4">
                       <svg className="w-16 h-16 mx-auto text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,12 +481,14 @@ export default function LiveCamera() {
                       {selectedCamera.status === 'online' ? 'Camera stream active' : 'Camera is currently offline'}
                     </p>
                     <p className="text-sm text-gray-500 mt-2">
-                      Waiting for vehicle entry/exit event...
+                      {sourceMode === 'live' ? 'Waiting for vehicle entry/exit event...' : 'Upload a video to start AI processing'}
                     </p>
                   </div>
                 ) : (
                   <div className="text-center text-white">
-                    <p className="text-lg font-medium text-gray-400">Select a camera to view feed</p>
+                    <p className="text-lg font-medium text-gray-400">
+                      {sourceMode === 'live' ? 'Select a camera to view feed' : 'Select camera or upload video for analysis'}
+                    </p>
                   </div>
                 )}
               </div>
