@@ -22,55 +22,226 @@ An intelligent parking management system with AI-powered vehicle detection, real
 
 ## 📁 Project Structure
 
+**Root Path:** `D:\Projects\Smart-Parking`
+
 ```
-Smart-Parking/
-│   │   │       └── schema.js  # Database schema definitions
-│   │   ├── routes/
-│   │   │   ├── auth.routes.js
-│   │   │   ├── parking.routes.js
-│   │   │   ├── ai.routes.js
-│   │   │   ├── camera.routes.js
-│   │   │   └── system.routes.js
-│   │   ├── controllers/
-│   │   │   ├── auth.controller.js
-│   │   │   ├── parking.controller.js
-│   │   │   ├── ai.controller.js
-│   │   │   ├── camera.controller.js
-│   │   │   └── system.controller.js
-│   │   ├── services/
-│   │   ├── middlewares/
-│   │   │   ├── auth.js        # JWT auth middleware
-│   │   │   └── error.js       # Error handling middleware
-│   │   └── utils/
-│   │       └── asyncHandler.js
-│   ├── drizzle.config.js      # Drizzle ORM configuration
-│   ├── package.json
-│   ├── index.js               # Express server entry point
-│   └── .env.example
-│
-└── frontend/                   # React frontend
-    ├── src/
-    │   ├── components/
-    │   │   ├── Navbar.jsx
-    │   │   └── Footer.jsx
-    │   ├── pages/
-    │   │   ├── Dashboard.jsx
-    │   │   ├── LiveCamera.jsx
-    │   │   └── MapParking.jsx
-    │   ├── hooks/
-    │   │   └── useApi.js
-    │   ├── services/
-    │   │   └── api.js
-    │   ├── utils/
-    │   │   └── helpers.js
-    │   ├── App.jsx
-    │   ├── main.jsx
-    │   └── index.css
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js
-    ├── tailwind.config.js
-    └── postcss.config.js
+├── 📁 ai-service
+│   ├── 📁 app
+│   │   ├── 📁 models
+│   │   │   └── 🐍 prediction_model.py
+│   │   ├── 📁 routers
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 health.py
+│   │   │   ├── 🐍 lpr.py
+│   │   │   ├── 🐍 predict.py
+│   │   │   ├── 🐍 traffic.py
+│   │   │   └── 🐍 vehicle.py
+│   │   ├── 📁 services
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 lpr_engine.py
+│   │   │   ├── 🐍 model_predictor.py
+│   │   │   ├── 🐍 stream_processor.py
+│   │   │   ├── 🐍 traffic_engine.py
+│   │   │   └── 🐍 vehicle_engine.py
+│   │   ├── 📁 utils
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 feature_engineering.py
+│   │   │   ├── 🐍 image_tools.py
+│   │   │   ├── 🐍 preprocessing.py
+│   │   │   ├── 🐍 response_builder.py
+│   │   │   └── 🐍 schemas.py
+│   │   ├── 🐍 __init__.py
+│   │   ├── 🐍 config.py
+│   │   └── 🐍 main.py
+│   ├── 📁 models
+│   │   ├── 📄 crowd_detection_model.onnx
+│   │   ├── 📄 illegal_model.onnx
+│   │   ├── 📄 lpr_model.onnx
+│   │   └── 📄 vehicle_model.onnx
+│   ├── 📁 tests
+│   │   ├── 🐍 __init__.py
+│   │   ├── 🐍 conftest.py
+│   │   ├── 🐍 mock_data_generator.py
+│   │   ├── 🐍 test_api_contract.py
+│   │   ├── 🐍 test_pipeline.py
+│   │   └── 🐍 test_prediction_model.py
+│   ├── 📁 training
+│   │   ├── 🐍 __init__.py
+│   │   └── 🐍 pipeline.py
+│   ├── 📝 README.md
+│   ├── 🐍 camera_worker.py
+│   ├── 📄 requirements.txt
+│   └── 🐍 validate.py
+├── 📁 backend
+│   ├── 📁 app
+│   │   ├── 📁 config
+│   │   │   ├── 🐍 __init__.py
+│   │   │   └── 🐍 settings.py
+│   │   ├── 📁 db
+│   │   │   ├── 🐍 __init__.py
+│   │   │   └── 🐍 database.py
+│   │   ├── 📁 middleware
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 auth.py
+│   │   │   └── 🐍 error_handler.py
+│   │   ├── 📁 models
+│   │   │   ├── 🐍 __init__.py
+│   │   │   └── 🐍 models.py
+│   │   ├── 📁 routes
+│   │   │   ├── 🐍 __init__.py
+│   │   │   ├── 🐍 auth.py
+│   │   │   ├── 🐍 dashboard.py
+│   │   │   ├── 🐍 logs.py
+│   │   │   └── 🐍 slots.py
+│   │   ├── 📁 schemas
+│   │   │   ├── 🐍 __init__.py
+│   │   │   └── 🐍 schemas.py
+│   │   ├── 📁 utils
+│   │   │   ├── 🐍 __init__.py
+│   │   │   └── 🐍 cache.py
+│   │   ├── 🐍 __init__.py
+│   │   └── 🐍 main.py
+│   ├── 📁 src
+│   │   ├── 📁 config
+│   │   │   └── 📄 env.js
+│   │   ├── 📁 controllers
+│   │   │   ├── 📄 ai.controller.js
+│   │   │   ├── 📄 analytics.controller.js
+│   │   │   ├── 📄 auth.controller.js
+│   │   │   ├── 📄 camera.controller.js
+│   │   │   ├── 📄 executiveSummary.controller.js
+│   │   │   ├── 📄 parking.controller.js
+│   │   │   ├── 📄 simulator.controller.js
+│   │   │   └── 📄 system.controller.js
+│   │   ├── 📁 db
+│   │   │   ├── 📁 drizzle
+│   │   │   │   ├── 📁 migrations
+│   │   │   │   │   ├── 📁 meta
+│   │   │   │   │   │   ├── ⚙️ 0000_snapshot.json
+│   │   │   │   │   │   └── ⚙️ _journal.json
+│   │   │   │   │   └── 📄 0000_needy_human_fly.sql
+│   │   │   │   └── 📄 schema.js
+│   │   │   ├── 📁 schema
+│   │   │   │   ├── 📄 MONGODB_SCHEMA.js
+│   │   │   │   ├── 📝 README_DATABASE.md
+│   │   │   │   └── 📄 SQL_SCHEMA.sql
+│   │   │   ├── 📄 mongo.js
+│   │   │   ├── 📄 postgres.js
+│   │   │   ├── 📄 redis.js
+│   │   │   ├── 📄 seed-admin.js
+│   │   │   ├── 📄 test-mongo.js
+│   │   │   ├── 📄 test-postgres.js
+│   │   │   └── 📄 test-redis.js
+│   │   ├── 📁 middlewares
+│   │   │   ├── 📄 auth.js
+│   │   │   └── 📄 error.js
+│   │   ├── 📁 models
+│   │   ├── 📁 routes
+│   │   │   ├── 📄 ai.routes.js
+│   │   │   ├── 📄 analytics.routes.js
+│   │   │   ├── 📄 auth.routes.js
+│   │   │   ├── 📄 camera.routes.js
+│   │   │   ├── 📄 dashboard.routes.js
+│   │   │   ├── 📄 live.routes.js
+│   │   │   ├── 📄 logs.routes.js
+│   │   │   ├── 📄 parking.routes.js
+│   │   │   ├── 📄 simulator.routes.js
+│   │   │   └── 📄 system.routes.js
+│   │   ├── 📁 services
+│   │   │   ├── 📄 ai.js
+│   │   │   ├── 📄 executiveSummary.js
+│   │   │   ├── 📄 index.js
+│   │   │   ├── 📄 prediction_service.js
+│   │   │   └── 📄 slotEfficiency.js
+│   │   ├── 📁 simulator
+│   │   │   ├── 📄 engine.js
+│   │   │   └── 📄 rules.js
+│   │   └── 📁 utils
+│   │       ├── 📄 asyncHandler.js
+│   │       └── 📄 time.js
+│   ├── 📁 test
+│   │   ├── 📄 api_prediction.test.http
+│   │   ├── 📄 executive_summary.test.http
+│   │   └── 📄 prediction_service.test.js
+│   ├── 📁 tests
+│   │   └── 🐍 test_api.py
+│   ├── 📝 README.md
+│   ├── 📄 drizzle.config.js
+│   ├── 📄 index.js
+│   ├── ⚙️ package-lock.json
+│   ├── ⚙️ package.json
+│   ├── 📄 requirements.txt
+│   ├── 🐍 seed.py
+│   ├── 📄 simulator-example.http
+│   └── 📄 test-ai.http
+├── 📁 docs
+│   ├── 📝 7featurenotdoneyet.md
+│   ├── 📝 ERD-concept.md
+│   ├── 📝 MASTER_MIGRATION_GUIDE.md
+│   ├── 📝 MASTER_SYSTEM_AUDIT_AND_MIGRATION.md
+│   ├── 📝 MIGRATION_MOCK_TO_REAL.md
+│   ├── 📝 Smart-parking-project-status.md
+│   ├── 📝 TESTING_GUIDE.md
+│   ├── 📝 ai_pipeline_planning.md
+│   ├── 📝 core-progress.md
+│   ├── 📝 documentation.md
+│   ├── 📝 implementation_plan.md
+│   ├── 📝 markdown.md
+│   ├── 📝 migration_todo.md
+│   ├── 📝 multi_model_pipeline_planning.md
+│   ├── 📝 planning.md
+│   ├── 📝 summary.md
+│   └── 📝 tech-stack.md
+├── 📁 frontend
+│   ├── 📁 src
+│   │   ├── 📁 components
+│   │   │   ├── 📁 analytics
+│   │   │   │   ├── 📄 BottleneckMap.jsx
+│   │   │   │   ├── 📄 CorrelationChart.jsx
+│   │   │   │   ├── 📄 EfficiencyStats.jsx
+│   │   │   │   ├── 📄 OccupancyChart.jsx
+│   │   │   │   ├── 📄 PredictedDemandChart.jsx
+│   │   │   │   └── 📄 ViolationHeatmap.jsx
+│   │   │   ├── 📄 FilterBar.jsx
+│   │   │   ├── 📄 Footer.jsx
+│   │   │   ├── 📄 Legend.jsx
+│   │   │   ├── 📄 Navbar.jsx
+│   │   │   ├── 📄 ParkingSlot.jsx
+│   │   │   ├── 📄 ProtectedRoute.jsx
+│   │   │   ├── 📄 Sidebar.jsx
+│   │   │   └── 📄 SlotModal.jsx
+│   │   ├── 📁 hooks
+│   │   │   ├── 📄 useApi.js
+│   │   │   └── 📄 useAuth.js
+│   │   ├── 📁 layouts
+│   │   │   └── 📄 DashboardLayout.jsx
+│   │   ├── 📁 pages
+│   │   │   ├── 📄 AnalyticsDashboard.jsx
+│   │   │   ├── 📄 Dashboard.jsx
+│   │   │   ├── 📄 ExecutiveSummaryPage.jsx
+│   │   │   ├── 📄 LiveCamera.jsx
+│   │   │   ├── 📄 Login.jsx
+│   │   │   ├── 📄 ParkingMap.jsx
+│   │   │   └── 📄 SimulatorPage.jsx
+│   │   ├── 📁 services
+│   │   │   ├── 📄 api.js
+│   │   │   └── 📄 parking.js
+│   │   ├── 📁 utils
+│   │   │   └── 📄 helpers.js
+│   │   ├── 📄 App.jsx
+│   │   ├── 🎨 index.css
+│   │   └── 📄 main.jsx
+│   ├── 🌐 index.html
+│   ├── ⚙️ package-lock.json
+│   ├── ⚙️ package.json
+│   ├── 📄 postcss.config.js
+│   ├── 📄 tailwind.config.js
+│   └── 📄 vite.config.js
+├── ⚙️ .gitignore
+├── 📝 README.md
+├── 📄 auto-run.bat
+├── 📄 auto-run.ps1
+└── 📄 auto-run.sh
 ```
 
 ---

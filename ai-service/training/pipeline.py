@@ -14,6 +14,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
+# Try to import XGBoost (preferred model); fall back to RandomForest
+try:
+    from xgboost import XGBRegressor
+    _XGBOOST_AVAILABLE = True
+except ImportError:
+    _XGBOOST_AVAILABLE = False
+
 from app.utils.preprocessing import full_preprocess
 from app.utils.feature_engineering import build_feature_set
 
@@ -29,23 +36,47 @@ class TrainingPipeline:
     def load_data(self, source: str | pd.DataFrame) -> pd.DataFrame:
         """
         Load raw data from CSV or DataFrame.
+        Falls back to an empty DataFrame with expected schema if source is invalid.
         """
         logger.info("Loading data from %s", source)
         if isinstance(source, str):
             if source.endswith(".csv"):
-                return pd.read_csv(source)
-            else(source.endswith(".json")):
-                return pd.read_json(source)
+                if os.path.exists(source):
+                    return pd.read_csv(source)
+                else:
+                    logger.warning("CSV file not found: %s. Returning empty DataFrame.", source)
+                    return pd.DataFrame(columns=['timestamp', 'slot_id', 'is_occupied', 'zone', 'hour', 'day_of_week'])
+            elif source.endswith(".json"):
+                if os.path.exists(source):
+                    return pd.read_json(source)
+                else:
+                    logger.warning("JSON file not found: %s. Returning empty DataFrame.", source)
+                    return pd.DataFrame(columns=['timestamp', 'slot_id', 'is_occupied', 'zone', 'hour', 'day_of_week'])
+            else:
+                logger.warning("Unknown source format: %s. Returning empty DataFrame.", source)
+                return pd.DataFrame(columns=['timestamp', 'slot_id', 'is_occupied', 'zone', 'hour', 'day_of_week'])
         return pd.DataFrame(source)
 
     def run(self, raw_data: pd.DataFrame | str):
         """
-        Run the full pipeline.
+        Run the full pipeline. Handles empty datasets gracefully.
         """
         logger.info("Starting training pipeline...")
         
         # 1. Load
         df = self.load_data(raw_data)
+        
+        # Guard: if dataset is empty, skip training and return baseline metadata
+        if df.empty or len(df) < 10:
+            logger.warning("Dataset is empty or too small (%d rows). Skipping training.", len(df))
+            self.metadata = {
+                "trained_at": datetime.now().isoformat(),
+                "metrics": {"mae": None, "rmse": None, "r2": None},
+                "features": [],
+                "model_type": "none",
+                "note": "Skipped — insufficient data"
+            }
+            return self.metadata
         
         # 2. Preprocess
         df_clean = full_preprocess(df)
@@ -53,17 +84,34 @@ class TrainingPipeline:
         # 3. Feature Engineering
         X, y = build_feature_set(df_clean)
         
-        # 4. Split (Time-based split preferred for time-series)
-        # For simplicity, we use shuffle=False to maintain temporal order
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+        # Guard: feature engineering may reduce rows to 0
+        if X.empty or len(X) < 5:
+            logger.warning("Feature set is empty after engineering. Skipping training.")
+            self.metadata = {
+                "trained_at": datetime.now().isoformat(),
+                "metrics": {"mae": None, "rmse": None, "r2": None},
+                "features": [],
+                "model_type": "none",
+                "note": "Skipped — feature set empty after engineering"
+            }
+            return self.metadata
         
-        # 5. Train
-        logger.info("Training Random Forest model...")
-        self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+        # 4. Split (chronological — no shuffling for time-series)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
         
         # Drop non-numeric columns like 'timestamp' before training
         X_train_numeric = X_train.select_dtypes(include=[np.number])
         X_test_numeric = X_test.select_dtypes(include=[np.number])
+        
+        # 5. Train — prefer XGBoost, fall back to RandomForest
+        if _XGBOOST_AVAILABLE:
+            logger.info("Training XGBoost model (primary)...")
+            self.model = XGBRegressor(n_estimators=100, max_depth=5, random_state=42)
+            model_type = "XGBRegressor"
+        else:
+            logger.info("XGBoost not available. Training RandomForest model (fallback)...")
+            self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+            model_type = "RandomForestRegressor"
         
         self.model.fit(X_train_numeric, y_train)
         
@@ -83,7 +131,7 @@ class TrainingPipeline:
                 "r2": float(r2)
             },
             "features": X_train_numeric.columns.tolist(),
-            "model_type": "RandomForestRegressor"
+            "model_type": model_type
         }
         
         # 7. Save

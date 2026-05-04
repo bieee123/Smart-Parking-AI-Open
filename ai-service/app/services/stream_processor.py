@@ -6,6 +6,7 @@ import queue
 import yt_dlp
 from app.services.lpr_engine import lpr_engine
 from app.services.traffic_engine import traffic_analyzer
+from app.services.inference_engine import inference_engine, CONFIDENCE_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,14 @@ class StreamProcessor:
         }
         self.thread = None
         self.result_queue = queue.Queue(maxsize=10)
+
+        # ONNX InferenceEngine — models may be None (mock mode) if files not found
+        self.inference_engine = inference_engine
+        _loaded = self.inference_engine.models_loaded
+        logger.info(
+            "[StreamProcessor] InferenceEngine status — vehicle:%s lpr:%s parking:%s",
+            _loaded['vehicle'], _loaded['lpr'], _loaded['parking']
+        )
 
     def start(self, url: str):
         if self.is_running and self.stream_url == url:
@@ -84,21 +93,32 @@ class StreamProcessor:
                 _, buffer = cv2.imencode('.jpg', frame)
                 img_bytes = buffer.tobytes()
 
-                # 2. Analyze Traffic Density
+                # 2. Analyze Traffic Density (existing engine — always runs)
                 traffic_res = traffic_analyzer.analyze_frame(img_bytes)
 
-                # 3. Detect License Plate
+                # 3. Detect License Plate (existing engine — always runs)
                 lpr_res = lpr_engine.predict(img_bytes)
 
-                # 4. Update Latest Result
+                # 4. ONNX Vehicle Detection (augments traffic_res when models are loaded)
+                #    If inference_engine has no model, detect_vehicles returns [] — mock fallback stays active.
+                onnx_detections = self.inference_engine.detect_vehicles(frame)
+                if onnx_detections:
+                    # Use ONNX count when available (filtered by CONFIDENCE_THRESHOLD internally)
+                    onnx_vehicle_count = len(onnx_detections)
+                    vehicle_count = onnx_vehicle_count
+                else:
+                    # Fall back to existing traffic_analyzer count
+                    vehicle_count = traffic_res["vehicle_count"]
+
+                # 5. Update Latest Result (SSE output shape preserved)
                 self.latest_result = {
-                    "vehicle_count": traffic_res["vehicle_count"],
+                    "vehicle_count": vehicle_count,
                     "density_level": traffic_res["density_level"],
                     "recommendation": traffic_res["recommendation"],
                     "last_plate": lpr_res["plate"] if lpr_res.get("detected") else self.latest_result.get("last_plate"),
                     "confidence": lpr_res["confidence"]
                 }
-                
+
                 # Push to queue for SSE
                 if not self.result_queue.full():
                     self.result_queue.put(self.latest_result)

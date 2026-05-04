@@ -526,4 +526,160 @@ npm run db:push        # Push schema changes
 
 ---
 
-_Dokumen ini adalah konsolidasi dari: `README.md`, `7featurenotdoneyet.md`, `core-progress.md`, `documentation.md`, `MASTER_MIGRATION_GUIDE.md`, `MASTER_SYSTEM_AUDIT_AND_MIGRATION.md`, `MIGRATION_MOCK_TO_REAL.md`, `migration_todo.md`, `summary.md`_
+## 🛠 15. TECH STACK LENGKAP
+
+### Frontend
+
+| Teknologi           | Fungsi                                  | Status                            |
+| ------------------- | --------------------------------------- | --------------------------------- |
+| React + Vite        | Framework UI utama                      | ✅ Dipakai                        |
+| TailwindCSS         | Styling                                 | ✅ Dipakai                        |
+| Recharts / Chart.js | Grafik prediksi demand, analytics       | ✅ Dipakai                        |
+| Leaflet / Mapbox GL | Heatmap & peta lokasi parkir            | ⏳ Planned                        |
+| Three.js            | Digital Twin (3D parking visualization) | ❌ Planned                        |
+| Socket.io client    | Real-time data dari server              | ⏳ Partial (SSE dipakai saat ini) |
+
+### Backend
+
+| Teknologi         | Fungsi                                  | Status           |
+| ----------------- | --------------------------------------- | ---------------- |
+| Node.js + Express | Backend API utama (auth, slots, logs)   | ✅ Dipakai       |
+| Drizzle ORM       | PostgreSQL query layer                  | ✅ Dipakai       |
+| FastAPI (Python)  | AI microservice (LPR, vehicle, predict) | ✅ Dipakai       |
+| WebSockets / SSE  | Real-time push ke dashboard             | ✅ Dipakai (SSE) |
+| Background tasks  | Handle model inference non-blocking     | ⏳ Partial       |
+
+### Database
+
+| Teknologi  | Fungsi                                            | Status                         |
+| ---------- | ------------------------------------------------- | ------------------------------ |
+| PostgreSQL | Structured data: users, slots, logs               | ✅ Dipakai                     |
+| MongoDB    | Unstructured: detections, violations, camera logs | ✅ Dipakai                     |
+| Redis      | Caching real-time, occupancy status               | ⏳ Optional (graceful degrade) |
+
+### AI / Machine Learning
+
+| Model/Library                   | Fungsi                                      | Status                     |
+| ------------------------------- | ------------------------------------------- | -------------------------- |
+| YOLOv8 (Ultralytics)            | Occupancy detection, vehicle classification | ✅ Siap (ONNX)             |
+| OpenCV                          | Frame extraction, preprocessing             | ✅ Dipakai                 |
+| LSTM / GRU (TensorFlow/PyTorch) | Demand prediction time-series               | ❌ Belum training          |
+| Facebook Prophet                | Prediksi berbasis date-time                 | ❌ Planned                 |
+| XGBoost / CatBoost              | Demand & violation prediction (tabular)     | 🔄 Mock/heuristic          |
+| ByteTrack / StrongSORT          | Vehicle tracking (illegal parking)          | ❌ Planned                 |
+| scikit-learn                    | Recommendation system ranking               | ❌ Planned                 |
+| ONNX Runtime                    | Inference model terlatih                    | ✅ Siap (belum integrated) |
+
+### DevOps / Deployment
+
+| Teknologi               | Fungsi                     | Status                    |
+| ----------------------- | -------------------------- | ------------------------- |
+| Docker / Docker Compose | Containerize semua service | ❌ Planned                |
+| Railway / Fly.io        | Backend deployment         | ❌ Planned                |
+| Vercel / Netlify        | Frontend deployment        | ❌ Planned                |
+| Google Colab / Kaggle   | Training model ML          | ⏳ Dipakai untuk training |
+
+---
+
+## 🧪 16. TESTING GUIDE
+
+### Test Files Overview
+
+| File                                        | Jumlah Test         | Platform            |
+| ------------------------------------------- | ------------------- | ------------------- |
+| `ai-service/tests/test_prediction_model.py` | ~25 tests           | Python (pytest)     |
+| `ai-service/tests/test_pipeline.py`         | ~18 tests           | Python (pytest)     |
+| `ai-service/tests/test_api_contract.py`     | ~17 tests           | Python (pytest)     |
+| `ai-service/tests/mock_data_generator.py`   | Generator fixture   | Python standalone   |
+| `backend/test/prediction_service.test.js`   | ~15 tests           | Node.js (node:test) |
+| `backend/test/api_prediction.test.http`     | HTTP endpoint tests | REST Client / curl  |
+
+### Menjalankan Tests
+
+**Python Tests (AI Service):**
+
+```bash
+cd ai-service
+pip install pytest pytest-cov
+
+# Semua tests
+pytest tests/ -v
+
+# Per file
+pytest tests/test_prediction_model.py -v
+pytest tests/test_pipeline.py -v
+pytest tests/test_api_contract.py -v
+
+# Dengan coverage report
+pytest tests/ --cov=app --cov=training --cov-report=term-missing -v
+```
+
+**Node.js Tests (Backend):**
+
+```bash
+cd backend
+node --test test/prediction_service.test.js
+node --test --test-reporter=spec test/prediction_service.test.js
+```
+
+**HTTP/curl Tests:**
+
+```bash
+# Pastikan backend running dulu: cd backend && node index.js
+
+# Valid prediction
+curl -s -X POST http://localhost:8000/api/ai/demand/predict \
+  -H "Content-Type: application/json" \
+  -d '{"current_hour":14,"horizon":5}'
+
+# Health check
+curl -s http://localhost:8000/api/ai/demand/health
+
+# Daily prediction
+curl -s -X POST http://localhost:8000/api/ai/demand/predict/daily \
+  -H "Content-Type: application/json" -d '{}'
+```
+
+**Mock Data Generator:**
+
+```bash
+cd ai-service
+python tests/mock_data_generator.py
+# Output: tests/data/mock_test_dataset.json
+```
+
+### Coverage Summary
+
+| Module                                       | Lines Covered | Branches | Catatan                                                     |
+| -------------------------------------------- | ------------- | -------- | ----------------------------------------------------------- |
+| `app/models/prediction_model.py`             | ~85%          | ~75%     | Baseline fully covered, load_model dengan file real belum   |
+| `training/pipeline.py`                       | ~90%          | ~80%     | Semua 7 step covered, placeholder branches belum dieksekusi |
+| `app/utils/preprocessing.py`                 | ~70%          | ~50%     | Signatures & logging covered, pandas logic masih commented  |
+| `app/utils/feature_engineering.py`           | ~70%          | ~50%     | Sama seperti preprocessing                                  |
+| `backend/src/services/prediction_service.js` | ~95%          | ~85%     | Mock fallback fully covered, real AI path partial           |
+
+### Expected Test Results
+
+```
+tests/test_prediction_model.py   25 tests  ✅
+tests/test_pipeline.py           18 tests  ✅
+tests/test_api_contract.py       17 tests  ✅
+prediction_service.test.js       15 tests  ✅
+
+Total: ~75 tests — semua pass tanpa ML model atau dataset asli
+```
+
+### Key Behaviors yang Divalidasi
+
+| Test Class                  | Yang Divalidasi                                         |
+| --------------------------- | ------------------------------------------------------- |
+| `TestArchitectureIntegrity` | Semua direktori & file wajib ada                        |
+| `TestBaselineDeterminism`   | Model return nilai realistis & bounded                  |
+| `TestNoDatasetMode`         | Pipeline tidak crash jika dataset tidak ada             |
+| `TestCorruptedData`         | File CSV corrupt tidak crash pipeline                   |
+| `TestCrossLayerConsistency` | Output FastAPI cocok dengan input Node.js service       |
+| `TestIntegration`           | Output model predict cocok dengan output schema service |
+
+---
+
+_Dokumen ini adalah konsolidasi lengkap dari semua 17 file: `README.md`, `7featurenotdoneyet.md`, `ai_pipeline_planning.md`, `core-progress.md`, `documentation.md`, `ERD-concept.md`, `implementation_plan.md`, `MASTER_MIGRATION_GUIDE.md`, `MASTER_SYSTEM_AUDIT_AND_MIGRATION.md`, `MIGRATION_MOCK_TO_REAL.md`, `migration_todo.md`, `multi_model_pipeline_planning.md`, `planning.md`, `summary.md`, `tech-stack.md`, `TESTING_GUIDE.md`, dan `markdown.md` (log percakapan — tidak ada konten teknis)._

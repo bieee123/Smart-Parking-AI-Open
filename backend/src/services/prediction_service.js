@@ -11,11 +11,21 @@
 import axios from 'axios';
 import env from '../config/env.js';
 
-const AI_TIMEOUT = 5000;
+/**
+ * Service-level configuration — driven by environment variables.
+ * Set NODE_ENV=production to disable mock fallback and require real AI.
+ */
+const config = {
+  useMockFallback: env.nodeEnv !== 'production',
+  aiServiceUrl: process.env.AI_SERVICE_URL || env.aiServiceUrl || 'http://localhost:9000',
+  timeout: parseInt(process.env.AI_TIMEOUT_MS || '5000', 10),
+};
+
+const AI_TIMEOUT = config.timeout;
 const MAX_RETRIES = 2;
 
 const client = axios.create({
-  baseURL: env.aiServiceUrl,
+  baseURL: config.aiServiceUrl,
   timeout: AI_TIMEOUT,
 });
 
@@ -98,8 +108,11 @@ export async function predictDemand({ current_hour, horizon = 5, history = {} })
     };
   } catch (err) {
     // Fallback to mock when AI service is unavailable
-    if (env.nodeEnv === 'development') {
-      console.warn('[prediction_service] AI service unavailable — using mock predictions');
+    if (config.useMockFallback) {
+      console.warn('[prediction_service] AI service unavailable — using mock predictions. URL:', config.aiServiceUrl);
+    } else {
+      // In production mode, log as error
+      console.error('[prediction_service] AI service error (mock fallback disabled in production):', err.message);
     }
 
     return {
