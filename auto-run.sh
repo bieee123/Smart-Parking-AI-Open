@@ -69,6 +69,11 @@ cleanup() {
         log_info "Frontend stopped (PID: $FRONTEND_PID)"
     fi
 
+    if [ -n "$AI_PID" ] && kill -0 "$AI_PID" 2>/dev/null; then
+        kill "$AI_PID" 2>/dev/null
+        log_info "AI Service stopped (PID: $AI_PID)"
+    fi
+
     log_info "All services stopped. Goodbye!"
     exit 0
 }
@@ -99,7 +104,7 @@ mkdir -p "$ROOT_DIR/logs"
 # STEP 1 — BACKEND SETUP
 # ============================================================
 echo ""
-log_info "[1/6] Setting up backend..."
+log_info "[1/7] Setting up backend..."
 
 cd "$ROOT_DIR/backend"
 
@@ -144,7 +149,7 @@ fi
 # STEP 2 — DATABASE MIGRATIONS
 # ============================================================
 echo ""
-log_info "[2/6] Running database migrations..."
+log_info "[2/7] Running database migrations..."
 
 if npx drizzle-kit push >> "$ROOT_DIR/logs/backend.log" 2>&1; then
     log_success "Database migrations completed."
@@ -157,7 +162,7 @@ fi
 # STEP 3 — TEST DATABASE CONNECTIONS
 # ============================================================
 echo ""
-log_info "[3/6] Testing database connections..."
+log_info "[3/7] Testing database connections..."
 
 # Test PostgreSQL
 echo "      Testing PostgreSQL..."
@@ -190,10 +195,62 @@ else
 fi
 
 # ============================================================
-# STEP 4 — START BACKEND
+# STEP 4 — AI SERVICE SETUP & START
 # ============================================================
 echo ""
-log_info "[4/6] Starting backend server..."
+log_info "[4/7] Setting up AI service..."
+
+cd "$ROOT_DIR/ai-service"
+
+# Detect Python
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+else
+    log_error "Python is not installed. Please install Python 3.8+."
+    exit 1
+fi
+
+# Setup virtual environment
+if [ ! -d ".venv" ]; then
+    log_info "Creating virtual environment..."
+    $PYTHON_CMD -m venv .venv
+    log_success "Virtual environment created."
+fi
+
+VENV_PYTHON="./.venv/bin/python"
+VENV_UVICORN="./.venv/bin/uvicorn"
+
+# Install requirements
+log_info "Installing AI dependencies..."
+$VENV_PYTHON -m pip install --upgrade pip > /dev/null 2>&1
+$VENV_PYTHON -m pip install -r requirements.txt > /dev/null 2>&1
+log_success "AI dependencies installed."
+
+# Start AI Service
+log_info "Starting AI service..."
+$VENV_UVICORN app.main:app --host 0.0.0.0 --port 9000 >> "$ROOT_DIR/logs/ai-service.log" 2>&1 &
+AI_PID=$!
+
+# Wait for AI service to start
+sleep 3
+
+if kill -0 "$AI_PID" 2>/dev/null; then
+    log_success "AI service running (PID: $AI_PID, port: 9000)"
+else
+    echo ""
+    log_error "AI service failed to start!"
+    log_error "Check logs: cat $ROOT_DIR/logs/ai-service.log"
+    kill "$BACKEND_PID" "$FRONTEND_PID" 2>/dev/null || true
+    exit 1
+fi
+
+# ============================================================
+# STEP 5 — START BACKEND
+# ============================================================
+echo ""
+log_info "[5/7] Starting backend server..."
 
 cd "$ROOT_DIR/backend"
 $NPM_CMD run dev >> "$ROOT_DIR/logs/backend.log" 2>&1 &
@@ -219,7 +276,7 @@ fi
 # STEP 5 — FRONTEND SETUP
 # ============================================================
 echo ""
-log_info "[5/6] Setting up frontend..."
+log_info "[6/7] Setting up frontend..."
 
 cd "$ROOT_DIR/frontend"
 
@@ -242,7 +299,7 @@ fi
 # STEP 6 — START FRONTEND
 # ============================================================
 echo ""
-log_info "[6/6] Starting frontend dev server..."
+log_info "[7/7] Starting frontend dev server..."
 
 $NPM_CMD run dev >> "$ROOT_DIR/logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
@@ -269,17 +326,19 @@ fi
 echo ""
 echo "=========================================="
 echo "SMART PARKING SYSTEM — AUTO RUN STATUS"
-echo "------------------------------------------"
+echo "=========================================="
 echo "Backend:    RUNNING (port 8000)"
 echo "Frontend:  RUNNING (port 5173)"
+echo "AI Service: RUNNING (port 9000)"
 echo "PostgreSQL: $PG_STATUS"
 echo "MongoDB:    $MONGO_STATUS"
 echo "Redis:      $REDIS_STATUS"
 echo "Logs saved in: $ROOT_DIR/logs/"
 echo "=========================================="
 echo ""
-echo "Backend:  http://localhost:8000"
-echo "Frontend: http://localhost:5173"
+echo "Backend:    http://localhost:8000"
+echo "Frontend:   http://localhost:5173"
+echo "AI Service: http://localhost:9000"
 echo ""
 echo "Press Ctrl+C to stop all servers."
 echo ""

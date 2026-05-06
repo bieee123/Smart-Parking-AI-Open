@@ -54,23 +54,17 @@ async function generateOccupancyData() {
       lowest_occupancy: sorted[sorted.length - 1] || null
     };
   } catch (err) {
-    console.warn('[ExecutiveSummary] generateOccupancyData falling back to mock:', err.message);
-    // Deterministic mock fallback
+    console.warn('[ExecutiveSummary] generateOccupancyData (no data):', err.message);
     return {
       timestamp: new Date().toISOString(),
-      total_slots: 100,
-      occupied_slots: 72,
-      available_slots: 28,
-      occupancy_percentage: 72.0,
-      occupancy_rate: 0.72,
-      areas: [
-        { area: 'Zone A', capacity: 40, occupied_slots: 30, available_slots: 10, occupancy_percentage: 75.0, occupancy_rate: 0.75 },
-        { area: 'Zone B', capacity: 35, occupied_slots: 26, available_slots: 9, occupancy_percentage: 74.3, occupancy_rate: 0.743 },
-        { area: 'Zone C', capacity: 25, occupied_slots: 16, available_slots: 9, occupancy_percentage: 64.0, occupancy_rate: 0.64 },
-      ],
-      highest_occupancy: { area: 'Zone A', occupancy_rate: 0.75 },
-      lowest_occupancy: { area: 'Zone C', occupancy_rate: 0.64 },
-      source: 'mock'
+      total_slots: 0,
+      occupied_slots: 0,
+      available_slots: 0,
+      occupancy_percentage: 0,
+      occupancy_rate: 0,
+      areas: [],
+      highest_occupancy: null,
+      lowest_occupancy: null,
     };
   }
 }
@@ -88,16 +82,18 @@ async function generateViolationSummary() {
     const totalToday = todayViolations.length;
 
     const breakdown = todayViolations.reduce((acc, v) => {
-      acc[v.type] = (acc[v.type] || 0) + 1;
+      const type = v.violation_type || v.type || 'unknown';
+      acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
 
     // Group by zone/hotspot
     const hotspotsMap = todayViolations.reduce((acc, v) => {
       const key = v.zone || 'Unknown';
+      const type = v.violation_type || v.type || 'unknown';
       if (!acc[key]) acc[key] = { zone: key, violations: 0, types: {} };
       acc[key].violations++;
-      acc[key].types[v.type] = (acc[key].types[v.type] || 0) + 1;
+      acc[key].types[type] = (acc[key].types[type] || 0) + 1;
       return acc;
     }, {});
 
@@ -122,19 +118,15 @@ async function generateViolationSummary() {
       avg_resolution_time_minutes: 20
     };
   } catch (err) {
-    console.warn('[ExecutiveSummary] generateViolationSummary falling back to mock:', err.message);
+    console.warn('[ExecutiveSummary] generateViolationSummary (no data):', err.message);
     return {
       generated_at: new Date().toISOString(),
-      total_violations_today: 12,
-      breakdown: { illegal_parking: 7, overtime: 3, no_permit: 2 },
-      top_hotspots: [
-        { zone: 'Downtown', area: 'Parking Lot', violations: 7, primary_type: 'illegal_parking', severity: 'high' },
-        { zone: 'Mall Area', area: 'Parking Lot', violations: 3, primary_type: 'overtime', severity: 'medium' },
-      ],
+      total_violations_today: 0,
+      breakdown: {},
+      top_hotspots: [],
       trend: { direction: 'stable', change_percent: 0, comparison: 'vs average' },
-      resolution_rate: 0.85,
-      avg_resolution_time_minutes: 20,
-      source: 'mock'
+      resolution_rate: 0,
+      avg_resolution_time_minutes: 0
     };
   }
 }
@@ -159,21 +151,12 @@ async function generatePredictedTrends() {
       throw new Error('predictDemand returned empty predictions');
     }
   } catch (err) {
-    console.warn('[ExecutiveSummary] generatePredictedTrends falling back to mock:', err.message);
-    // Deterministic baseline mock — mirrors BASE_PROFILE in prediction_service.js
-    const BASE_PROFILE = {
-      0: 0.15, 1: 0.12, 2: 0.10, 3: 0.08, 4: 0.10, 5: 0.15,
-      6: 0.25, 7: 0.40, 8: 0.55, 9: 0.65,
-      10: 0.75, 11: 0.82, 12: 0.88, 13: 0.90, 14: 0.92, 15: 0.88,
-      16: 0.82, 17: 0.75, 18: 0.65, 19: 0.50,
-      20: 0.40, 21: 0.32, 22: 0.25, 23: 0.18,
-    };
-    const predictions = Array.from({ length: 6 }, (_, i) => BASE_PROFILE[(currentHour + i + 1) % 24] ?? 0.5);
+    console.warn('[ExecutiveSummary] generatePredictedTrends (no data):', err.message);
     mlResult = {
-      predictions,
-      confidence: 0.60,
-      version: '0.1.0-mock',
-      metadata: { model_type: 'mock-baseline', source: 'fallback' }
+      predictions: [],
+      confidence: 0,
+      version: '1.0.0',
+      metadata: { model_type: 'none', source: 'empty' }
     };
   }
 

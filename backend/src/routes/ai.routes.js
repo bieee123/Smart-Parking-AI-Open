@@ -12,6 +12,10 @@ import {
   predictWeekly,
   predictionHealth,
 } from '../services/prediction_service.js';
+import { 
+  getAnalysisHistory, 
+  saveAnalysisHistory 
+} from '../controllers/ai.controller.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -98,5 +102,19 @@ router.post('/demand/predict/weekly', asyncHandler(async (_req, res) => {
   const result = await predictWeekly();
   res.json({ success: true, data: result });
 }));
+
+// ── Analysis History ─────────────────────────────────────────────────────────
+
+/**
+ * @route   GET /api/ai/analysis/history
+ * @desc    Get manual AI analysis history from PostgreSQL
+ */
+router.get('/analysis/history', getAnalysisHistory);
+
+/**
+ * @route   POST /api/ai/analysis/history
+ * @desc    Save AI analysis result to PostgreSQL
+ */
+router.post('/analysis/history', saveAnalysisHistory);
 
 export default router;

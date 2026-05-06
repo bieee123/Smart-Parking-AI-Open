@@ -1,5 +1,5 @@
 /**
- * CorrelationChart — pure SVG horizontal bar chart showing
+ * CorrelationChart — pure SVG vertical grouped bar chart showing
  * traffic volume vs parking occupancy correlation per area.
  *
  * Props:
@@ -7,51 +7,87 @@
  *  - title: string
  */
 export default function CorrelationChart({ data, title }) {
-  const padding = { top: 20, right: 30, bottom: 20, left: 140 };
+  const padding = { top: 40, right: 30, bottom: 40, left: 40 };
   const W = 600;
-  const rowH = 36;
-  const H = padding.top + padding.bottom + data.length * rowH;
+  const H = 300;
   const chartW = W - padding.left - padding.right;
+  const chartH = H - padding.top - padding.bottom;
+  
+  const groupW = chartW / Math.max(1, data.length);
+  const barW = groupW * 0.35;
+  const gap = groupW * 0.1;
 
   return (
     <div className="w-full">
-      {title && <h3 className="text-lg font-semibold text-gray-700 mb-4">{title}</h3>}
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{ minWidth: 300 }}>
-        {data.map((d, i) => {
-          const y = padding.top + i * rowH;
-          const trafficW = d.traffic * chartW;
-          const occupancyW = d.occupancy * chartW;
+      {title && <h3 className="text-lg font-semibold text-gray-700 mb-6">{title}</h3>}
+      <div className="relative">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{ minHeight: 200 }}>
+          {/* Grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map(v => {
+            const y = padding.top + chartH * (1 - v);
+            return (
+              <g key={v}>
+                <line x1={padding.left} y1={y} x2={W - padding.right} y2={y} stroke="#f3f4f6" strokeWidth={1} />
+                <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize={10} fill="#9ca3af">{v * 100}%</text>
+              </g>
+            );
+          })}
 
-          return (
-            <g key={i}>
-              {/* Label */}
-              <text x={padding.left - 8} y={y + 14} textAnchor="end" fontSize={10} fill="#374151">
-                {d.label}
-              </text>
+          {data.map((d, i) => {
+            const groupX = padding.left + i * groupW + gap;
+            const trafficH = d.traffic * chartH;
+            const occupancyH = d.occupancy * chartH;
 
-              {/* Traffic bar */}
-              <rect x={padding.left} y={y + 2} width={trafficW} height={12} rx={3} fill="#3b82f6" fillOpacity={0.7} />
+            return (
+              <g key={i}>
+                {/* Traffic bar */}
+                <rect 
+                  x={groupX} 
+                  y={padding.top + chartH - trafficH} 
+                  width={barW} 
+                  height={trafficH} 
+                  rx={4} 
+                  fill="#3b82f6" 
+                  fillOpacity={0.8} 
+                  className="transition-all duration-500"
+                />
 
-              {/* Occupancy bar */}
-              <rect x={padding.left} y={y + 18} width={occupancyW} height={12} rx={3} fill="#f59e0b" fillOpacity={0.7} />
+                {/* Occupancy bar */}
+                <rect 
+                  x={groupX + barW + 4} 
+                  y={padding.top + chartH - occupancyH} 
+                  width={barW} 
+                  height={occupancyH} 
+                  rx={4} 
+                  fill="#f59e0b" 
+                  fillOpacity={0.8} 
+                  className="transition-all duration-500"
+                />
 
-              {/* Values */}
-              <text x={padding.left + trafficW + 4} y={y + 12} fontSize={9} fill="#3b82f6">
-                {d.traffic.toFixed(2)}
-              </text>
-              <text x={padding.left + occupancyW + 4} y={y + 28} fontSize={9} fill="#f59e0b">
-                {d.occupancy.toFixed(2)}
-              </text>
-            </g>
-          );
-        })}
+                {/* X-axis Label */}
+                <text 
+                  x={groupX + barW} 
+                  y={H - padding.bottom + 18} 
+                  textAnchor="middle" 
+                  fontSize={11} 
+                  fontWeight="500"
+                  fill="#4b5563"
+                >
+                  {d.label}
+                </text>
+              </g>
+            );
+          })}
 
-        {/* Legend */}
-        <rect x={W - 170} y={4} width={10} height={10} rx={2} fill="#3b82f6" fillOpacity={0.7} />
-        <text x={W - 156} y={13} fontSize={10} fill="#6b7280">Traffic Volume</text>
-        <rect x={W - 75} y={4} width={10} height={10} rx={2} fill="#f59e0b" fillOpacity={0.7} />
-        <text x={W - 61} y={13} fontSize={10} fill="#6b7280">Occupancy</text>
-      </svg>
+          {/* Legend */}
+          <g transform={`translate(${W - 220}, 10)`}>
+            <rect width={10} height={10} rx={2} fill="#3b82f6" fillOpacity={0.8} />
+            <text x={16} y={9} fontSize={10} fill="#6b7280">Traffic Volume</text>
+            <rect x={100} width={10} height={10} rx={2} fill="#f59e0b" fillOpacity={0.8} />
+            <text x={116} y={9} fontSize={10} fill="#6b7280">Occupancy</text>
+          </g>
+        </svg>
+      </div>
     </div>
   );
 }

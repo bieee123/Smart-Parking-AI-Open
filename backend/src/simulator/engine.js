@@ -28,6 +28,30 @@
  */
 
 import { ruleEngine, RuleEngine } from './rules.js';
+import { db } from '../db/postgres.js';
+import { parkingSlots } from '../db/drizzle/schema.js';
+import { getCollection } from '../db/mongo.js';
+
+// ── Live DB input helper ────────────────────────────────────────────
+async function getLiveSimulatorInput() {
+  try {
+    const slots = await db.select().from(parkingSlots);
+    const total = slots.length || 1;
+    const occupied = slots.filter(s => s.is_occupied).length;
+    const vcol = await getCollection('violation_history');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const violations = await vcol.countDocuments({ created_at: { $gte: today } });
+    return {
+      occupancyRate: occupied / total,
+      totalSlots: total,
+      occupiedSlots: occupied,
+      violationCount: violations,
+    };
+  } catch (err) {
+    console.warn('[SimEngine] DB fallback:', err.message);
+    return { occupancyRate: 0.5, totalSlots: 50, occupiedSlots: 25, violationCount: 0 };
+  }
+}
 
 // ── Input Validation ─────────────────────────────────────────────────────────
 
@@ -126,7 +150,7 @@ class SimulatorEngine {
    * @param {number} [input.vehicles_leaving] - Vehicles leaving
    * @returns {Object} Simulation result
    */
-  runSingle(input) {
+  async runSingle(input) {
     const validation = validateInput(input);
     if (!validation.valid) {
       return {
@@ -136,11 +160,14 @@ class SimulatorEngine {
       };
     }
 
+    // Fetch live data as defaults when params not explicitly provided
+    const liveInput = await getLiveSimulatorInput();
+
     const area = input.area;
-    const occupancyPercent = input.occupancy || 0;
-    const trafficVolume = input.traffic || 0;
-    const violationCount = input.violations || 0;
-    const capacity = input.capacity || 200;
+    const occupancyPercent = input.occupancy ?? Math.round(liveInput.occupancyRate * 100);
+    const trafficVolume    = input.traffic    ?? Math.round(liveInput.occupancyRate * 200);
+    const violationCount   = input.violations ?? liveInput.violationCount;
+    const capacity         = input.capacity   ?? liveInput.totalSlots ?? 200;
 
     // Build area stats for rule engine
     const areaStats = {

@@ -1,6 +1,9 @@
-import { getCollection } from '../db/mongo.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { getCache, setCache } from '../db/redis.js';
+import { getCollection } from '../db/mongo.js';
+import { getCache, setCache, deleteCache } from '../db/redis.js';
+import { db } from '../db/postgres.js';
+import { cameras as camerasTable } from '../db/drizzle/schema.js';
+import { eq } from 'drizzle-orm';
 
 const CACHE_CAMERA_STATUS = 3; // seconds
 
@@ -82,7 +85,11 @@ export const getCameraStatusById = asyncHandler(async (req, res) => {
   }
 
   const collection = getCollection('camera_logs');
-  const camera = await collection.findOne({ camera_id: cameraId }).sort({ created_at: -1 });
+  const camera = await collection
+    .find({ camera_id: cameraId })
+    .sort({ created_at: -1 })
+    .limit(1)
+    .next();
 
   if (!camera) {
     return res.status(404).json({ error: 'Camera not found' });
@@ -100,4 +107,30 @@ export const getCameraStatusById = asyncHandler(async (req, res) => {
   await setCache(cacheKey, result, CACHE_CAMERA_STATUS);
 
   res.json({ success: true, data: result });
+});
+// ── GET /api/camera (Persistent PostgreSQL list)
+export const getAllCameras = asyncHandler(async (req, res) => {
+  const cams = await db.select().from(camerasTable);
+  res.json({ success: true, data: cams });
+});
+
+// ── PUT /api/camera/:id/status (Persistent update)
+export const updateCameraPersistentStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const [updated] = await db
+    .update(camerasTable)
+    .set({ status, updated_at: new Date() })
+    .where(eq(camerasTable.id, id))
+    .returning();
+
+  if (!updated) {
+    return res.status(404).json({ error: 'Camera not found' });
+  }
+
+  // Invalidate cache if needed
+  await deleteCache(`camera:status:${id}`);
+
+  res.json({ success: true, message: 'Persistent camera status updated', data: updated });
 });

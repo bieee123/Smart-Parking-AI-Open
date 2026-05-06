@@ -3,27 +3,27 @@
 Dokumen ini berisi langkah-langkah detail untuk mengganti sistem simulasi statis menjadi sistem deteksi AI real-time menggunakan model ONNX.
 
 ## 🟩 Phase 1: AI Engine Implementation (Backend)
-- [ ] **Dependency Setup**: Install `onnxruntime-gpu` (atau cpu) dan `opencv-python` di environment `ai-service`.
-- [ ] **Model Initialization**: Buat class `InferenceEngine` di `app/services/` yang memuat 3 model ONNX saat aplikasi start.
-- [ ] **Frame Preprocessing**: Implementasikan teknik *Letterbox* agar gambar tidak gepeng saat di-resize ke 640x640.
-- [ ] **Batch Inference**: Optimasi pemrosesan agar model Vehicle dan LPR tidak bertabrakan saat dijalankan bersamaan.
+- [x] **Dependency Setup**: Install `onnxruntime` and `opencv-python`.
+- [x] **Model Initialization**: `InferenceEngine` loads 4 models (Vehicle, LPR, Illegal, Crowd).
+- [x] **Frame Preprocessing**: Letterbox resizing implemented for 640x640.
+- [x] **Batch Inference**: Optimized via `EnsembleEngine`.
 
 ## 🟦 Phase 2: Data Streaming Integration
-- [ ] **Mock Removal**: Hapus fungsi `generate_mock_data()` di `app/routers/traffic.py`.
-- [ ] **State Management**: Gunakan `Shared Dictionary` atau `Redis` (opsional) untuk menyimpan hasil deteksi terbaru agar bisa diakses oleh SSE.
-- [ ] **Confidence Thresholding**: Tambahkan filter agar deteksi di bawah 40% tidak ditampilkan (untuk mengurangi *false positives*).
-- [ ] **Hybrid Sourcing Middleware**: Buat logic di backend untuk switch otomatis antara data Live (SSE) vs data History (DB) berdasarkan ketersediaan stream.
+- [x] **Mock Removal**: `analyze_frame` now prefers real AI results.
+- [x] **State Management**: Real-time sync to Backend Ingestion API.
+- [x] **Confidence Thresholding**: Filtered at 20% (tunable).
+- [x] **Hybrid Sourcing Middleware**: AI-service broadcasts via SSE.
 
 ## 🟧 Phase 3: Frontend Visualization
-- [ ] **Overlay Layer**: Implementasikan layer transparan di atas `react-player` untuk menggambar kotak deteksi.
-- [ ] **SSE Mapping**: Petakan field JSON baru (misal: `detections: [{box: [x,y,w,h], label: 'car'}]`) ke fungsi render.
-- [ ] **Alert System**: Buat notifikasi otomatis di UI jika terdeteksi "Illegal Parking" dari `parking_model.onnx`.
+- [x] **Overlay Layer**: SVG/Canvas overlay in `LiveCamera.jsx`.
+- [x] **SSE Mapping**: Direct mapping of AI boxes to UI.
+- [x] **Alert System**: Visual "ILLEGAL" markers for violations.
 
 ## 🟪 Phase 4: Video Analytics Feature
-- [ ] **Multipart Form Handler**: Setup FastAPI untuk menerima upload file besar.
-- [ ] **Frame-by-Frame Processor**: Loop video file menggunakan OpenCV dan kirim progress ke frontend.
-- [ ] **Database Sync Service**: Implementasikan logic untuk menyimpan hasil agregat video (total kendaraan/pelanggaran) ke PostgreSQL/MongoDB agar Dashboard & Analytics ikut ter-update.
-- [ ] **Result Summary**: Tampilkan laporan akhir setelah video selesai dianalisis.
+- [x] **Multipart Form Handler**: FastAPI `/traffic/upload` implemented.
+- [x] **Frame-by-Frame Processor**: OpenCV background loop in `video.py`.
+- [x] **Database Sync Service**: Aggregate results saved to MongoDB via Ingestion API.
+- [x] **Result Summary**: Narrative summary generated after analysis.
 ## 🟨 Phase 5: Global UI Synchronization (Cleaning Mock Data)
 Pastikan seluruh halaman berikut sudah mengambil data dari API Real-Time:
 - [ ] **Dashboard (Home)**: Update grafik "Traffic Overview" agar mengambil data dari history deteksi AI (bukan random array).
@@ -32,10 +32,10 @@ Pastikan seluruh halaman berikut sudah mengambil data dari API Real-Time:
 - [ ] **Notification Center**: Pastikan push notification (misal: "Plat Terblokir Terdeteksi") berasal dari hasil LPR nyata.
 
 ## 🟫 Phase 6: Multi-Model Ensemble Implementation (Optimization)
-- [ ] **Brightness Detector Module**: Implementasikan modul analisis pencahayaan di `ai-service`.
-- [ ] **Parallel Inference Engine**: Setup `ThreadPoolExecutor` untuk menjalankan `vehicle_model` dan `bdd100k` secara simultan.
-- [ ] **NMS Merge Logic**: Buat fungsi untuk menggabungkan hasil deteksi dari berbagai model dan menghapus duplikat.
-- [ ] **Dynamic Switching**: Pastikan sistem otomatis memilih model terbaik berdasarkan kondisi frame.
+- [x] **Brightness Detector Module**: Lighting mode analysis (Day/Night).
+- [x] **Parallel Inference Engine**: `ThreadPoolExecutor` for concurrent models.
+- [x] **NMS Merge Logic**: deduplication across multiple models.
+- [x] **Dynamic Switching**: Mode-aware model routing implemented.
 
 ---
 *Status: Planning Phase*

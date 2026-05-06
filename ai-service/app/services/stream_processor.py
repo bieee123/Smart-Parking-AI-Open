@@ -8,6 +8,14 @@ from app.services.lpr_engine import lpr_engine
 from app.services.traffic_engine import traffic_analyzer
 from app.services.inference_engine import inference_engine, CONFIDENCE_THRESHOLD
 
+# ── EnsembleEngine (optional — graceful if unavailable) ────────────────
+try:
+    from app.services.ensemble_engine import EnsembleEngine
+    _ensemble = EnsembleEngine(inference_engine)
+except Exception as _ens_err:
+    print(f"[StreamProcessor] EnsembleEngine unavailable: {_ens_err}")
+    _ensemble = None
+
 logger = logging.getLogger(__name__)
 
 class StreamProcessor:
@@ -89,35 +97,57 @@ class StreamProcessor:
                 continue
 
             try:
-                # 1. Convert frame to bytes for engines
+                # 1. Convert frame to bytes for LPR engine
                 _, buffer = cv2.imencode('.jpg', frame)
                 img_bytes = buffer.tobytes()
 
-                # 2. Analyze Traffic Density (existing engine — always runs)
-                traffic_res = traffic_analyzer.analyze_frame(img_bytes)
-
-                # 3. Detect License Plate (existing engine — always runs)
+                # 2. Detect License Plate (existing engine — always runs)
                 lpr_res = lpr_engine.predict(img_bytes)
 
-                # 4. ONNX Vehicle Detection (augments traffic_res when models are loaded)
-                #    If inference_engine has no model, detect_vehicles returns [] — mock fallback stays active.
-                onnx_detections = self.inference_engine.detect_vehicles(frame)
-                if onnx_detections:
-                    # Use ONNX count when available (filtered by CONFIDENCE_THRESHOLD internally)
-                    onnx_vehicle_count = len(onnx_detections)
-                    vehicle_count = onnx_vehicle_count
+                # 3. Use EnsembleEngine for vehicle/slot detection when frame is available
+                camera_id = getattr(self, 'camera_id', 'CCTV')
+                if _ensemble is not None:
+                    det = _ensemble.analyze_frame(frame, camera_id=camera_id)
+                    vehicle_count  = det.get('vehicle_count', 0)
+                    density_level  = det.get('density_level', 'low')
+                    recommendation = det.get('recommendation', '')
+                    boxes          = det.get('boxes', [])
+                    violations     = det.get('violations', [])
+                    vehicle_types  = det.get('vehicle_types', {})
+                    summary        = det.get('summary', '')
+                    lighting_mode  = det.get('lighting_mode', 'unknown')
                 else:
-                    # Fall back to existing traffic_analyzer count
-                    vehicle_count = traffic_res["vehicle_count"]
+                    # Fallback to existing traffic_analyzer
+                    traffic_res    = traffic_analyzer.analyze_frame(img_bytes)
+                    onnx_detections = self.inference_engine.detect_vehicles(frame)
+                    vehicle_count  = len(onnx_detections) if onnx_detections else traffic_res['vehicle_count']
+                    density_level  = traffic_res['density_level']
+                    recommendation = traffic_res['recommendation']
+                    boxes          = []
+                    violations     = []
+                    vehicle_types  = {}
+                    summary        = f"{camera_id}: {density_level}, {vehicle_count} kendaraan"
+                    lighting_mode  = 'unknown'
 
-                # 5. Update Latest Result (SSE output shape preserved)
-                self.latest_result = {
-                    "vehicle_count": vehicle_count,
-                    "density_level": traffic_res["density_level"],
-                    "recommendation": traffic_res["recommendation"],
-                    "last_plate": lpr_res["plate"] if lpr_res.get("detected") else self.latest_result.get("last_plate"),
-                    "confidence": lpr_res["confidence"]
-                }
+                # 4. Update Latest Result — full SSE output shape
+                if _ensemble is not None:
+                    # Ensemble already includes plate_number, plate_confidence, last_plate, etc.
+                    self.latest_result = det
+                else:
+                    self.latest_result = {
+                        'vehicle_count': vehicle_count,
+                        'density_level': density_level,
+                        'recommendation': recommendation,
+                        'plate_number': lpr_res.get('plate_number', lpr_res.get('plate', 'UNREADABLE')),
+                        'plate_confidence': lpr_res.get('plate_confidence', lpr_res.get('confidence', 0.0)),
+                        'last_plate': lpr_res.get('plate', 'UNREADABLE'),
+                        'boxes': boxes,
+                        'violations': violations,
+                        'vehicle_types': vehicle_types,
+                        'lighting_mode': lighting_mode,
+                        'summary': summary,
+                        'source': 'stream_fallback'
+                    }
 
                 # Push to queue for SSE
                 if not self.result_queue.full():

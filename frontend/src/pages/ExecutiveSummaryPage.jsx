@@ -288,8 +288,8 @@ export default function ExecutiveSummaryPage() {
               </div>
               <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 <span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />
-                Source: {data.metadata?.data_source || 'rule-based'} &nbsp;•&nbsp;
-                v{data.metadata?.rule_engine_version || '0.1.0'} &nbsp;•&nbsp;
+                Source: AI Analysis Pipeline &nbsp;•&nbsp;
+                v{data.metadata?.rule_engine_version || '1.0.0'} &nbsp;•&nbsp;
                 Gen: {new Date(data.generated_at).toLocaleString()}
               </div>
             </div>

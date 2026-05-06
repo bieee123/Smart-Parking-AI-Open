@@ -14,7 +14,7 @@ import { generateExecutiveSummary } from '../services/executiveSummary.js';
  * @access  Public (read-only)
  */
 export const getExecutiveSummary = asyncHandler(async (_req, res) => {
-  const summary = generateExecutiveSummary();
+  const summary = await generateExecutiveSummary();
 
   if (!summary.success) {
     return res.status(500).json({

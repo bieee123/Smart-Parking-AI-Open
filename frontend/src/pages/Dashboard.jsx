@@ -186,8 +186,8 @@ export default function Dashboard() {
                         {log.event.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-700">
-                      Slot #{log.slot_id}
+                    <td className="px-4 py-3 font-semibold text-gray-700">
+                      {log.slot_display_name || `Slot #${log.slot_id?.substring(0, 8)}`}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {log.license_plate || '—'}

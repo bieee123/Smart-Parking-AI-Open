@@ -35,8 +35,21 @@ def error_response(message: str, status_code: int = 400, details: Optional[dict]
 
 
 def build_plate_response(plate: str, confidence: float) -> JSONResponse:
-    """Convenience: return license plate recognition result."""
-    return success_response({"plate": plate, "confidence": round(confidence, 4)})
+    """Return license plate recognition result.
+    
+    Always returns plate_number (never null).
+    Legacy 'plate' field kept for backward compatibility.
+    """
+    safe_plate = plate if (plate and plate not in ("N/A", "NO_PLATE_DETECTED", "")) else "UNREADABLE"
+    safe_conf  = round(float(confidence), 4)
+    return success_response({
+        # New canonical fields
+        "plate_number":     safe_plate,
+        "plate_confidence": safe_conf,
+        # Legacy field — keep for backward compatibility
+        "plate":            safe_plate,
+        "confidence":       safe_conf,
+    })
 
 
 def build_vehicle_response(vtype: str, confidence: float) -> JSONResponse:

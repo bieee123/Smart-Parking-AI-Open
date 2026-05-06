@@ -83,4 +83,4 @@ async function deleteCacheByPattern(pattern) {
   }
 }
 
-export { connectRedis, setCache, getCache, deleteCache, deleteCacheByPattern };
+export { connectRedis, setCache, getCache, deleteCache, deleteCacheByPattern, redis as client };

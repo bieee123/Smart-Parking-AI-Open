@@ -26,9 +26,10 @@ function Badge({ level }) {
     none: 'bg-gray-50 text-gray-600 border border-gray-100',
     ok: 'bg-blue-50 text-blue-700 border border-blue-100',
   };
+  const levelKey = String(level || 'none').toLowerCase();
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[level] || map.none}`}>
-      {level}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[levelKey] || map.none}`}>
+      {level || 'None'}
     </span>
   );
 }
@@ -51,36 +52,43 @@ function ScoreBar({ score }) {
 
 function ResultPanel({ result, title }) {
   if (!result) return null;
+  const analysis = result.analysis || {};
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm h-full flex flex-col">
+      <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+        <FaParking className="text-blue-500" />
+        {title}
+      </h3>
 
-      {result.analysis && (
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            ['Occupancy', result.analysis.occupancy_status || result.analysis.occupancy_severity],
-            ['Traffic', result.analysis.traffic_status],
-            ['Violations', result.analysis.violation_status],
-            ['Occupancy %', result.analysis.occupancy_percent != null ? `${result.analysis.occupancy_percent}%` : null],
-          ].filter(([, v]) => v != null).map(([k, v]) => (
-            <div key={k} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-              <p className="text-xs text-gray-500 mb-1">{k}</p>
-              <Badge level={String(v).toLowerCase()} />
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          ['Occupancy', analysis.occupancy_status || analysis.occupancy_severity],
+          ['Traffic', analysis.traffic_status],
+          ['Violations', analysis.violation_status],
+          ['Occupancy %', analysis.occupancy_percent != null ? `${analysis.occupancy_percent}%` : null],
+        ].filter(([, v]) => v != null).map(([k, v]) => (
+          <div key={k} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+            <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-wider">{k}</p>
+            <Badge level={v} />
+          </div>
+        ))}
+      </div>
 
       {result.efficiency_score != null && <ScoreBar score={result.efficiency_score} />}
 
       {result.bottlenecks && result.bottlenecks.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-red-400 mb-2">⚠ Bottlenecks Detected</p>
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-[10px] font-black text-red-600 mb-2 flex items-center gap-1 uppercase tracking-widest">
+            <HiExclamationCircle /> Bottlenecks
+          </p>
           {result.bottlenecks.map((b, i) => (
-            <div key={i} className="bg-red-900/20 border border-red-800/40 rounded-lg p-3 mb-2">
-              <p className="text-xs text-red-300 font-medium">{b.area} — <Badge level={b.level} /></p>
+            <div key={i} className="bg-red-50 border border-red-100 rounded-lg p-2 mb-2">
+              <div className="flex justify-between items-center mb-1">
+                <p className="text-[10px] text-red-800 font-black uppercase tracking-tight">{b.area}</p>
+                <Badge level={b.level} />
+              </div>
               {b.reasons && b.reasons.map((r, j) => (
-                <p key={j} className="text-xs text-slate-400 mt-1">• {r}</p>
+                <p key={j} className="text-[10px] text-red-600 font-medium leading-tight">• {r}</p>
               ))}
             </div>
           ))}
@@ -88,23 +96,15 @@ function ResultPanel({ result, title }) {
       )}
 
       {result.suggestions && result.suggestions.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-blue-400 mb-2">💡 Suggestions</p>
-          {result.suggestions.map((s, i) => (
-            <p key={i} className="text-xs text-slate-300 bg-slate-700/40 rounded p-2 mb-1">• {s}</p>
-          ))}
-        </div>
-      )}
-
-      {result.reroute && result.reroute.alternatives && result.reroute.alternatives.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-green-400 mb-2">🔀 Reroute Alternatives</p>
-          {result.reroute.alternatives.map((a, i) => (
-            <div key={i} className="flex items-center justify-between bg-green-900/20 border border-green-800/30 rounded p-2 mb-1">
-              <span className="text-xs text-slate-300">{a.area}</span>
-              <span className="text-xs text-green-400">{a.occupancy}% • {a.recommendation}</span>
-            </div>
-          ))}
+        <div className="pt-2 border-t border-gray-100 mt-auto">
+          <p className="text-[10px] font-black text-blue-600 mb-2 flex items-center gap-1 uppercase tracking-widest">
+            <HiDocumentReport /> AI Suggestions
+          </p>
+          <div className="space-y-1">
+            {result.suggestions.map((s, i) => (
+              <p key={i} className="text-[10px] font-bold text-blue-800 bg-blue-50 border border-blue-100 rounded p-2 leading-tight">• {s}</p>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -157,18 +157,22 @@ function PolicyResultPanel({ result, loading }) {
 
       {result.efficiency_score != null && <ScoreBar score={result.efficiency_score} />}
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">Efficiency Change:</span>
-        <span className={`text-sm font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {diff >= 0 ? '+' : ''}{(diff * 100).toFixed(1)}%
-        </span>
-      </div>
+      {diff !== undefined && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 font-bold uppercase tracking-widest">Efficiency Change:</span>
+          <span className={`text-sm font-black px-2 py-0.5 rounded ${diff >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {diff >= 0 ? '+' : ''}{(diff * 100).toFixed(1)}%
+          </span>
+        </div>
+      )}
 
       {result.actions && result.actions.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-purple-600 mb-2">📋 Policy Effects</p>
+          <p className="text-[10px] font-black text-purple-600 mb-2 uppercase tracking-widest flex items-center gap-1">
+            <HiDocumentReport /> Policy Effects
+          </p>
           {result.actions.map((a, i) => (
-            <p key={i} className="text-xs text-gray-600 bg-gray-50 rounded p-2 mb-1 border border-gray-100">• {a}</p>
+            <p key={i} className="text-xs font-bold text-gray-600 bg-gray-50 rounded p-2 mb-1 border border-gray-100">• {a}</p>
           ))}
         </div>
       )}
@@ -348,7 +352,7 @@ export default function SimulatorPage() {
               </button>
             </div>
             <div>
-              <PolicyResultPanel result={singleResult} loading={singleLoading} title="Simulation Result" />
+              <ResultPanel result={singleResult} loading={singleLoading} title="Simulation Result" />
               {!singleLoading && !singleResult && !singleError && (
                 <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 flex items-center justify-center h-full">
                   <div className="text-center">
@@ -396,8 +400,9 @@ export default function SimulatorPage() {
               </div>
               {multiError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3 mt-3 font-medium">{multiError}</p>}
               <button onClick={runMulti} disabled={multiLoading}
-                className="mt-4 w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20 active:scale-95">
-                {multiLoading ? '⏳ Analyzing…' : '▶ Run Multi-Area Simulation'}
+                className="mt-4 w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center gap-2">
+                {multiLoading ? <HiRefresh className="animate-spin text-lg" /> : <HiPlay className="text-lg" />}
+                {multiLoading ? 'Analyzing…' : 'Run Multi-Area Simulation'}
               </button>
             </div>
 
@@ -490,8 +495,9 @@ export default function SimulatorPage() {
               </div>
               {policyError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3 font-medium">{policyError}</p>}
               <button onClick={runPolicy} disabled={policyLoading}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-purple-600/20 active:scale-95">
-                {policyLoading ? '⏳ Simulating…' : '🔬 Test Policy'}
+                className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-purple-600/20 active:scale-95 flex items-center justify-center gap-2">
+                {policyLoading ? <HiRefresh className="animate-spin text-lg" /> : <HiBeaker className="text-lg" />}
+                {policyLoading ? 'Simulating…' : 'Test Policy'}
               </button>
             </div>
             <div>

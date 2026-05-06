@@ -9,6 +9,17 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        secure: false,
+      },
+      '/traffic': {
+        target: 'http://localhost:9000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ai': {
+        target: 'http://localhost:9000',
+        changeOrigin: true,
+        secure: false,
       },
     },
   },

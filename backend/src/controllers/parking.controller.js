@@ -85,7 +85,13 @@ export const updateSlot = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status, is_occupied, vehicle_type, license_plate, camera_id } = req.body;
 
-  // Determine is_occupied from status or direct field
+  // 1. Get current slot state for log detection
+  const [currentSlot] = await db.select().from(parkingSlots).where(eq(parkingSlots.id, id)).limit(1);
+  if (!currentSlot) {
+    return res.status(404).json({ error: 'Parking slot not found' });
+  }
+
+  // Determine new occupancy state
   let newOccupied = is_occupied;
   if (status !== undefined) {
     newOccupied = status === 'occupied';
@@ -94,10 +100,48 @@ export const updateSlot = asyncHandler(async (req, res) => {
   const updateData = {
     updated_at: new Date(),
   };
+  if (status !== undefined) updateData.status = status;
   if (newOccupied !== undefined) updateData.is_occupied = newOccupied;
   if (vehicle_type !== undefined) updateData.vehicle_type = vehicle_type || null;
   if (license_plate !== undefined) updateData.license_plate = license_plate || null;
   if (camera_id !== undefined) updateData.camera_id = camera_id || null;
+
+  // Handle Logs based on change
+  const wasOccupied = currentSlot.is_occupied;
+
+  // A. Change: Empty -> Occupied (Manual Entry)
+  if (!wasOccupied && newOccupied) {
+    await db.insert(parkingLogs).values({
+      slot_id: id,
+      license_plate: license_plate || 'MANUAL',
+      vehicle_type: vehicle_type || 'car',
+      status: 'active',
+      entry_time: new Date(),
+    });
+  }
+
+  // B. Change: Occupied -> Empty (Manual Exit)
+  if (wasOccupied && !newOccupied) {
+    const [activeLog] = await db
+      .select()
+      .from(parkingLogs)
+      .where(and(eq(parkingLogs.slot_id, id), eq(parkingLogs.status, 'active')))
+      .orderBy(desc(parkingLogs.entry_time))
+      .limit(1);
+
+    if (activeLog) {
+      const exitTime = new Date();
+      const durationMinutes = Math.round((exitTime - activeLog.entry_time) / 60000);
+      await db.update(parkingLogs)
+        .set({
+          exit_time: exitTime,
+          duration_minutes: durationMinutes,
+          fee: durationMinutes * 1000,
+          status: 'completed'
+        })
+        .where(eq(parkingLogs.id, activeLog.id));
+    }
+  }
 
   // If setting to not occupied, clear vehicle data
   if (newOccupied === false) {
@@ -105,24 +149,61 @@ export const updateSlot = asyncHandler(async (req, res) => {
     updateData.license_plate = null;
   }
 
+  // Get current slot state for comparison
+  const [currentSlot] = await db.select().from(parkingSlots).where(eq(parkingSlots.id, id));
+  if (!currentSlot) return res.status(404).json({ error: 'Slot not found' });
+
   const [updatedSlot] = await db
     .update(parkingSlots)
     .set(updateData)
     .where(eq(parkingSlots.id, id))
     .returning();
 
-  if (!updatedSlot) {
-    return res.status(404).json({ error: 'Parking slot not found' });
+  // Sync with Logs for Analytics
+  if (updateData.is_occupied !== undefined && updateData.is_occupied !== currentSlot.is_occupied) {
+    if (updateData.is_occupied) {
+      // Create new "active" log
+      await db.insert(parkingLogs).values({
+        id: crypto.randomUUID(),
+        slot_id: id,
+        license_plate: 'MANUAL',
+        vehicle_type: 'car',
+        status: 'active',
+        entry_time: new Date()
+      });
+    } else {
+      // Close active log
+      const [activeLog] = await db.select()
+        .from(parkingLogs)
+        .where(and(eq(parkingLogs.slot_id, id), eq(parkingLogs.status, 'active')))
+        .orderBy(desc(parkingLogs.entry_time))
+        .limit(1);
+
+      if (activeLog) {
+        const exitTime = new Date();
+        const duration = Math.ceil((exitTime - new Date(activeLog.entry_time)) / 60000);
+        await db.update(parkingLogs)
+          .set({ 
+            status: 'completed', 
+            exit_time: exitTime, 
+            duration_minutes: duration,
+            fee: Math.ceil(duration / 60) * 5000
+          })
+          .where(eq(parkingLogs.id, activeLog.id));
+      }
+    }
   }
 
   // Invalidate cache
   await deleteCacheByPattern('slots:*');
   await deleteCache(`slot:${id}`);
+  await deleteCacheByPattern('logs:*');
+  await deleteCacheByPattern('analytics:*'); // Clear analytics cache too
 
   res.json({
     success: true,
-    message: 'Parking slot updated successfully',
-    data: { ...updatedSlot, status: deriveStatus(updatedSlot) },
+    message: 'Parking slot updated successfully and synced with logs',
+    data: updatedSlot,
   });
 });
 
@@ -156,17 +237,18 @@ export const getLogs = asyncHandler(async (req, res) => {
   const offset = (pageNum - 1) * limitNum;
 
   let query = db.select().from(parkingLogs);
-  let countQuery = db.select({ count: parkingLogs.id }).from(parkingLogs);
+  let countQuery = db.select({ count: sql`count(*)`.mapWith(Number) }).from(parkingLogs);
 
   if (slotId) {
     query = query.where(eq(parkingLogs.slot_id, slotId));
     countQuery = countQuery.where(eq(parkingLogs.slot_id, slotId));
   }
 
-  query.orderBy(desc(parkingLogs.entry_time)).limit(limitNum).offset(offset);
+  // MUST assign back to query as Drizzle methods return new objects
+  query = query.orderBy(desc(parkingLogs.entry_time)).limit(limitNum).offset(offset);
 
   const [countResult, logs] = await Promise.all([countQuery, query]);
-  const total = countResult.length;
+  const total = countResult[0]?.count || 0;
 
   const result = {
     logs,
@@ -269,10 +351,12 @@ export const completeLog = asyncHandler(async (req, res) => {
 
 // ── Helper: derive status string from slot fields ───────────
 function deriveStatus(slot) {
-  // Priority: explicit status-like field → is_occupied → default
-  if (slot.status) return slot.status; // if already a status field
-  if (slot.is_occupied) return 'occupied';
-  return 'empty';
+  // 1. If explicit status exists and is not 'empty' or 'occupied', use it (e.g. reserved, offline, error)
+  if (slot.status && !['empty', 'occupied'].includes(slot.status)) {
+    return slot.status;
+  }
+  // 2. Fallback to is_occupied mapping
+  return slot.is_occupied ? 'occupied' : (slot.status || 'empty');
 }
 
 // ── POST /api/parking/detect — AI plate + vehicle detection ─
@@ -378,25 +462,71 @@ export const getDashboardSummary = asyncHandler(async (_req, res) => {
   res.json({ success: true, data: summary });
 });
 
-// ── GET /api/logs/recent
+// ── GET /api/logs/recent — Unified Event Stream for Dashboard
 export const getRecentLogs = asyncHandler(async (req, res) => {
-  const cacheKey = 'logs:recent';
-  const cached = await getCache(cacheKey);
-  if (cached) {
-    return res.json({ success: true, data: cached });
-  }
+  const cacheKey = 'logs:recent:v2';
+// const cached = await getCache(cacheKey);
+// if (cached) {
+//   return res.json({ success: true, data: cached });
+// }
 
-  const logs = await db
-    .select()
+  // Fetch the 20 most recently modified logs with slot info
+  // Fetch raw objects from both tables using a join
+  const rawResults = await db
+    .select({
+      parking_log: parkingLogs,
+      parking_slot: parkingSlots,
+    })
     .from(parkingLogs)
-    .orderBy(desc(parkingLogs.entry_time))
+    .leftJoin(parkingSlots, eq(parkingLogs.slot_id, parkingSlots.id))
+    .orderBy(desc(parkingLogs.created_at))
     .limit(20);
 
+  const eventStream = [];
+
+  rawResults.forEach((row) => {
+    const log = row.parking_log;
+    const slot = row.parking_slot;
+    const slotNumber = slot ? slot.slot_number : null;
+
+    const slotDisplayName = slotNumber ? `Slot ${slotNumber}` : `Slot #${log.slot_id.substring(0, 8)}`;
+
+    // 1. Vehicle Enter
+    eventStream.push({
+      id: `${log.id}-enter`,
+      session_id: log.id,
+      slot_id: log.slot_id,
+      slot_display_name: slotDisplayName,
+      license_plate: log.license_plate,
+      event: 'vehicle_enter',
+      created_at: log.entry_time,
+    });
+
+    // 2. Vehicle Exit
+    if (log.exit_time && log.status === 'completed') {
+      eventStream.push({
+        id: `${log.id}-exit`,
+        session_id: log.id,
+        slot_id: log.slot_id,
+        slot_display_name: slotDisplayName,
+        license_plate: log.license_plate,
+        event: 'vehicle_exit',
+        created_at: log.exit_time,
+      });
+    }
+  });
+
+  // Sort and limit
+  const sortedStream = eventStream
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 20);
+
   const result = {
-    logs: logs.slice(0, 20),
-    count: logs.length,
+    logs: sortedStream,
+    count: sortedStream.length,
   };
 
-  await setCache(cacheKey, result, 10);
+
+  await setCache(cacheKey, result, 5); // Short cache for real-time feel
   res.json({ success: true, data: result });
 });

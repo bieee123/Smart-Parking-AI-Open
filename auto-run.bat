@@ -115,10 +115,30 @@ if errorlevel 1 (
 )
 
 :: ============================================================
-:: STEP 4 — START BACKEND
+:: STEP 4 — START AI SERVICE
 :: ============================================================
 echo.
-echo [4/6] Starting backend server...
+echo [4/7] Starting AI service...
+
+cd /d "%ROOT_DIR%\ai-service"
+
+if not exist ".venv" (
+    echo       Creating Python virtual environment...
+    python -m venv .venv
+)
+
+start "Smart-Parking AI Service" cmd /k "cd /d %ROOT_DIR%\ai-service && .venv\Scripts\pip install -r requirements.txt -q && .venv\Scripts\uvicorn app.main:app --host 0.0.0.0 --port 9000 --reload"
+
+:: Wait for AI service to warm up
+timeout /t 6 /nobreak >nul
+
+echo       AI service starting on port 9000 (check new window)
+
+:: ============================================================
+:: STEP 5 — START BACKEND
+:: ============================================================
+echo.
+echo [5/7] Starting backend server...
 
 start "Smart-Parking Backend" cmd /k "cd /d %ROOT_DIR%\backend && npm run dev 2>&1 | tee %ROOT_DIR%\logs\backend.log"
 

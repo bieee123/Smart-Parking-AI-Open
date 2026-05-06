@@ -57,7 +57,7 @@ export const runSimulation = asyncHandler(async (req, res) => {
   if (input.areas && Array.isArray(input.areas)) {
     result = simulatorEngine.runMultiArea(input);
   } else if (input.area) {
-    result = simulatorEngine.runSingle(input);
+    result = await simulatorEngine.runSingle(input);
   } else {
     return res.status(400).json({
       success: false,

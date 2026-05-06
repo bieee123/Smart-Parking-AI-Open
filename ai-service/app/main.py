@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import PORT, HOST, CORS_ORIGINS
-from app.routers import lpr, vehicle, predict, health, traffic
+from app.routers import lpr, vehicle, predict, health, traffic, video
 
 # ── Logging ───────────────────────────────────────────────────
 logging.basicConfig(
@@ -37,6 +37,7 @@ app.include_router(vehicle.router, prefix="/ai")
 app.include_router(predict.router, prefix="/ai")
 app.include_router(health.router, prefix="/ai")
 app.include_router(traffic.router, prefix="/ai")
+app.include_router(video.router, prefix="/ai")
 
 
 # ── Root endpoint ─────────────────────────────────────────────

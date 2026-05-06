@@ -62,55 +62,60 @@ class PredictionModel:
         Predict occupancy rate for the next *horizon* hours.
         """
         if self.model is not None:
-            return self._predict_with_model(hour, horizon, history)
+            features = {
+                'current_hour': hour,
+                'horizon': horizon,
+                'current_occupancy': history[-1] if history else 0.5,
+            }
+            return self._predict_with_model(features)
         return self._baseline_predict(hour, horizon, history)
 
-    def _predict_with_model(self, hour: int, horizon: int, history: Optional[List[float]] = None) -> List[float]:
-        """
-        Run inference through the loaded Random Forest model.
-        """
-        predictions = []
-        # Prepare feature vector based on metadata['features']
-        # Note: This is simplified. Real inference would need the exact same features as training.
-        # For now we use the baseline if history is missing or features don't match.
-        
-        feature_names = self.metadata.get("features", [])
-        if not feature_names:
-            return self._baseline_predict(hour, horizon, history)
-
+    def _predict_with_model(self, features: dict) -> list:
+        """Run inference menggunakan loaded model dengan feature engineering."""
         try:
-            for h in range(1, horizon + 1):
-                future_hour = (hour + h) % 24
-                # Mock feature construction (in production, use feature_engineering.py)
-                features_dict = {f: 0.0 for f in feature_names}
-                
-                # Basic temporal features
-                if "hour_of_day" in features_dict: features_dict["hour_of_day"] = future_hour
-                if "hour_sin" in features_dict: features_dict["hour_sin"] = math.sin(2 * math.pi * future_hour / 24)
-                if "hour_cos" in features_dict: features_dict["hour_cos"] = math.cos(2 * math.pi * future_hour / 24)
-                
-                # Fill lags if history available
-                if history:
-                    for lag in [1, 2, 3, 6, 12, 24]:
-                        key = f"is_occupied_lag_{lag}"
-                        if key in features_dict:
-                            features_dict[key] = history[-lag] if len(history) >= lag else history[-1]
+            import numpy as np
+            from app.utils.feature_engineering import add_temporal_features, add_external_features
 
-                # Convert to DataFrame with correct column order
-                X = pd.DataFrame([features_dict])[feature_names]
-                pred = self.model.predict(X)[0]
-                predictions.append(float(max(0.0, min(1.0, pred))))
-                
-                # Update history for autoregressive multi-step prediction
-                if history:
-                    history.append(pred)
-                else:
-                    history = [pred]
-                    
+            current_hour = features.get('current_hour', pd.Timestamp.now().hour)
+            horizon = features.get('horizon', 6)
+
+            df = pd.DataFrame([{
+                'timestamp': pd.Timestamp.now(),
+                'is_occupied': features.get('current_occupancy', 0.5),
+                'hour': current_hour,
+            }])
+
+            df = add_temporal_features(df)
+            df = add_external_features(df)
+
+            feature_cols = [
+                c for c in df.columns
+                if c not in ['timestamp', 'slot_id', 'zone', 'target', 'is_occupied']
+            ]
+            X_base = df[feature_cols].fillna(0)
+
+            predictions = []
+            for i in range(horizon):
+                X = X_base.copy()
+                shifted_hour = (current_hour + i + 1) % 24
+                if 'hour' in X.columns:
+                    X['hour'] = shifted_hour
+                if 'hour_sin' in X.columns:
+                    X['hour_sin'] = np.sin(2 * np.pi * shifted_hour / 24)
+                if 'hour_cos' in X.columns:
+                    X['hour_cos'] = np.cos(2 * np.pi * shifted_hour / 24)
+
+                pred = float(self.model.predict(X)[0])
+                predictions.append(round(max(0.0, min(1.0, pred)), 3))
+
             return predictions
+
         except Exception as e:
-            logger.error("Inference error: %s. Falling back to baseline.", e)
-            return self._baseline_predict(hour, horizon, history)
+            print(f"[PredictionModel] _predict_with_model failed: {e}")
+            # Extract args from features dict for baseline fallback
+            _hour = features.get('current_hour', 0) if isinstance(features, dict) else 0
+            _horizon = features.get('horizon', 6) if isinstance(features, dict) else 6
+            return self._baseline_predict(_hour, _horizon)
 
     def _baseline_predict(self, hour: int, horizon: int, history: Optional[List[float]] = None) -> List[float]:
         """

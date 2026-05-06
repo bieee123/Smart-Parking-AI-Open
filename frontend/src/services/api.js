@@ -6,8 +6,9 @@ function getAuthHeader() {
 }
 
 async function request(endpoint, options = {}) {
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...getAuthHeader(),
     ...options.headers,
   };
@@ -76,30 +77,25 @@ export const api = {
     executiveSummary: () => request('/analytics/executive-summary'),
   },
 
-  // Camera (placeholder — no backend yet)
+  // Camera (Persistent)
   camera: {
-    // Returns mock data until /camera/* endpoints exist
-    getLogs: async () => ({ success: true, data: mockCameraLogs() }),
-    getStatus: async () => ({ success: true, data: mockCameraStatus() }),
+    getLogs: (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return request(`/camera/logs${qs ? `?${qs}` : ''}`);
+    },
+    getStatus: () => request('/camera'),
+    getAll: () => request('/camera'),
+    updatePersistentStatus: (id, status) => 
+      request(`/camera/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  },
+
+  // AI & Analysis
+  ai: {
+    analyze: (formData) => request('/ai/analyze', { method: 'POST', body: formData }),
+    getHistory: () => request('/ai/analysis/history'),
+    saveHistory: (data) => request('/ai/analysis/history', { method: 'POST', body: JSON.stringify(data) }),
   },
 };
 
-// Mock camera data (backend not ready)
-function mockCameraLogs() {
-  return [
-    { id: 1, camera_id: 'CAM-01', event: 'vehicle_detected', plate: 'B 1234 XYZ', timestamp: new Date().toISOString() },
-    { id: 2, camera_id: 'CAM-02', event: 'vehicle_enter', plate: 'B 5678 ABC', timestamp: new Date(Date.now() - 300000).toISOString() },
-    { id: 3, camera_id: 'CAM-01', event: 'vehicle_exit', plate: 'B 1234 XYZ', timestamp: new Date(Date.now() - 600000).toISOString() },
-  ];
-}
-
-function mockCameraStatus() {
-  return [
-    { id: 'CAM-01', name: 'Entrance Gate', status: 'online', last_heartbeat: new Date().toISOString(), linked_slot: 'A1-01' },
-    { id: 'CAM-02', name: 'Zone A', status: 'online', last_heartbeat: new Date(Date.now() - 10000).toISOString(), linked_slot: 'A1-02' },
-    { id: 'CAM-03', name: 'Zone B', status: 'offline', last_heartbeat: new Date(Date.now() - 3600000).toISOString(), linked_slot: null },
-    { id: 'CAM-04', name: 'Exit Gate', status: 'online', last_heartbeat: new Date().toISOString(), linked_slot: 'B1-01' },
-  ];
-}
 
 export default api;

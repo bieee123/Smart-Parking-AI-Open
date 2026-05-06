@@ -1,5 +1,8 @@
 import { getCollection } from '../db/mongo.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { db } from '../db/postgres.js';
+import { analysisHistory } from '../db/drizzle/schema.js';
+import { desc } from 'drizzle-orm';
 
 export const getDetections = asyncHandler(async (req, res) => {
   const { limit = 50, page = 1 } = req.query;
@@ -55,4 +58,25 @@ export const getStats = asyncHandler(async (req, res) => {
   res.json({
     stats: { totalDetections, todayDetections },
   });
+});
+
+// ── GET /api/ai/analysis/history (PostgreSQL)
+export const getAnalysisHistory = asyncHandler(async (req, res) => {
+  const history = await db.select().from(analysisHistory).orderBy(desc(analysisHistory.created_at));
+  res.json({ success: true, data: history });
+});
+
+// ── POST /api/ai/analysis/history (PostgreSQL)
+export const saveAnalysisHistory = asyncHandler(async (req, res) => {
+  const { filename, media_type, result_summary, detailed_result } = req.body;
+  
+  const [inserted] = await db.insert(analysisHistory).values({
+    filename,
+    media_type,
+    result_summary,
+    detailed_result: typeof detailed_result === 'string' ? detailed_result : JSON.stringify(detailed_result),
+    created_at: new Date()
+  }).returning();
+
+  res.status(201).json({ success: true, data: inserted });
 });

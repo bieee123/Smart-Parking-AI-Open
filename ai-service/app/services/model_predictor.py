@@ -34,7 +34,7 @@ class ModelPredictor:
             logger.error("Failed to load prediction model: %s — falling back to mock", exc)
             self.model = None
 
-    def predict(self, hour: int, horizon: int = 3) -> list[float]:
+    def predict(self, hour: int, horizon: int = 3, history: list = None) -> list:
         """Predict occupancy rate for the next *horizon* hours.
 
         Parameters
@@ -43,6 +43,8 @@ class ModelPredictor:
             Current hour of the day (0-23).
         horizon : int
             Number of hours ahead to predict (1-24).
+        history : list, optional
+            Historical occupancy records for lag features.
 
         Returns
         -------
@@ -50,31 +52,65 @@ class ModelPredictor:
             Occupancy rates between 0.0 and 1.0 for each future hour.
         """
         if self.model is not None:
-            return self._predict_model(hour, horizon)
+            return self._predict_model(hour, horizon, history)
         return self._predict_mock(hour, horizon)
 
     # ── Real model inference ──────────────────────────────────
-    def _predict_model(self, hour: int, horizon: int) -> list[float]:
-        """Run inference through the loaded sklearn model.
+    def _predict_model(self, current_hour: int, horizon: int, history: list = None) -> list:
+        """Predict menggunakan model yang sudah di-load, dengan feature engineering."""
+        try:
+            import pandas as pd
+            import numpy as np
+            from app.utils.feature_engineering import (
+                add_temporal_features, add_lag_features,
+                add_rolling_features, add_external_features
+            )
 
-        TODO: Adjust feature engineering to match how your model was trained.
-        """
-        import numpy as np
+            # Bangun DataFrame dari history atau buat dummy
+            if history and len(history) > 0:
+                df = pd.DataFrame(history)
+                if 'timestamp' not in df.columns:
+                    df['timestamp'] = pd.date_range(
+                        end=pd.Timestamp.now(), periods=len(df), freq='h'
+                    )
+            else:
+                df = pd.DataFrame([{
+                    'timestamp': pd.Timestamp.now(),
+                    'is_occupied': 0.5,
+                    'slot_id': 'unknown',
+                    'zone': 'unknown',
+                }])
 
-        predictions = []
-        for h in range(1, horizon + 1):
-            future_hour = (hour + h) % 24
-            # Example features: hour_sin, hour_cos, is_weekend (default False)
-            features = np.array([[
-                math.sin(2 * math.pi * future_hour / 24),
-                math.cos(2 * math.pi * future_hour / 24),
-                0,  # is_weekend placeholder
-            ]])
-            pred = self.model.predict(features)[0]
-            # Clip to valid occupancy range
-            predictions.append(float(max(0.0, min(1.0, pred))))
+            df = add_temporal_features(df)
+            df = add_lag_features(df)
+            df = add_rolling_features(df)
+            df = add_external_features(df)
 
-        return predictions
+            feature_cols = [
+                c for c in df.columns
+                if c not in ['timestamp', 'slot_id', 'zone', 'target', 'is_occupied']
+            ]
+            X_base = df[feature_cols].fillna(0).tail(1)
+
+            predictions = []
+            for i in range(horizon):
+                X = X_base.copy()
+                shifted_hour = (current_hour + i + 1) % 24
+                if 'hour' in X.columns:
+                    X['hour'] = shifted_hour
+                if 'hour_sin' in X.columns:
+                    X['hour_sin'] = np.sin(2 * np.pi * shifted_hour / 24)
+                if 'hour_cos' in X.columns:
+                    X['hour_cos'] = np.cos(2 * np.pi * shifted_hour / 24)
+
+                pred = float(self.model.predict(X)[0])
+                predictions.append(round(max(0.0, min(1.0, pred)), 3))
+
+            return predictions
+
+        except Exception as e:
+            print(f"[ModelPredictor] _predict_model failed, using mock: {e}")
+            return self._predict_mock(current_hour, horizon)  # fallback wajib ada
 
     # ── Mock heuristic predictor ──────────────────────────────
     @staticmethod

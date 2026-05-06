@@ -70,8 +70,6 @@ function App() {
           </ProtectedRoute>
         }
       />
-
-      {/* Simulator */}
       <Route
         path="/simulator"
         element={
@@ -82,6 +80,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
 
       {/* Executive Summary */}
       <Route
