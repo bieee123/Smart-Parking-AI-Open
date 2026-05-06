@@ -13,8 +13,8 @@ export default function PredictedDemandChart({ data, title }) {
   const chartW = W - padding.left - padding.right;
   const chartH = H - padding.top - padding.bottom;
 
-  const maxVal = Math.max(...data.map((d) => Math.max(d.predicted, d.actual || 0)), 100);
-  const barGroupWidth = chartW / data.length;
+  const maxVal = data.length > 0 ? Math.max(...data.map((d) => Math.max(d.predicted, d.actual || 0)), 100) : 100;
+  const barGroupWidth = data.length > 0 ? chartW / data.length : chartW;
   const barWidth = barGroupWidth * 0.3;
 
   return (

@@ -18,7 +18,7 @@ export default function OccupancyChart({ data, labels, title, height = 220, colo
   const chartW = W - padding.left - padding.right;
   const chartH = H - padding.top - padding.bottom;
 
-  const maxVal = Math.max(...data, 100);
+  const maxVal = data.length > 0 ? Math.max(...data, 100) : 100;
   const minVal = 0;
 
   const points = useMemo(() => {

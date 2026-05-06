@@ -149,9 +149,7 @@ export const updateSlot = asyncHandler(async (req, res) => {
     updateData.license_plate = null;
   }
 
-  // Get current slot state for comparison
-  const [currentSlot] = await db.select().from(parkingSlots).where(eq(parkingSlots.id, id));
-  if (!currentSlot) return res.status(404).json({ error: 'Slot not found' });
+
 
   const [updatedSlot] = await db
     .update(parkingSlots)
@@ -159,40 +157,7 @@ export const updateSlot = asyncHandler(async (req, res) => {
     .where(eq(parkingSlots.id, id))
     .returning();
 
-  // Sync with Logs for Analytics
-  if (updateData.is_occupied !== undefined && updateData.is_occupied !== currentSlot.is_occupied) {
-    if (updateData.is_occupied) {
-      // Create new "active" log
-      await db.insert(parkingLogs).values({
-        id: crypto.randomUUID(),
-        slot_id: id,
-        license_plate: 'MANUAL',
-        vehicle_type: 'car',
-        status: 'active',
-        entry_time: new Date()
-      });
-    } else {
-      // Close active log
-      const [activeLog] = await db.select()
-        .from(parkingLogs)
-        .where(and(eq(parkingLogs.slot_id, id), eq(parkingLogs.status, 'active')))
-        .orderBy(desc(parkingLogs.entry_time))
-        .limit(1);
 
-      if (activeLog) {
-        const exitTime = new Date();
-        const duration = Math.ceil((exitTime - new Date(activeLog.entry_time)) / 60000);
-        await db.update(parkingLogs)
-          .set({ 
-            status: 'completed', 
-            exit_time: exitTime, 
-            duration_minutes: duration,
-            fee: Math.ceil(duration / 60) * 5000
-          })
-          .where(eq(parkingLogs.id, activeLog.id));
-      }
-    }
-  }
 
   // Invalidate cache
   await deleteCacheByPattern('slots:*');

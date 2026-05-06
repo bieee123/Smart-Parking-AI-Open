@@ -51,6 +51,16 @@ export default function CorrelationChart({ data, title }) {
                   fillOpacity={0.8} 
                   className="transition-all duration-500"
                 />
+                <text 
+                  x={groupX + barW/2} 
+                  y={padding.top + chartH - trafficH - 6} 
+                  textAnchor="middle" 
+                  fontSize={10} 
+                  fill="#1d4ed8" 
+                  fontWeight="bold"
+                >
+                  {d.trafficLabel || '0'}
+                </text>
 
                 {/* Occupancy bar */}
                 <rect 
@@ -63,6 +73,16 @@ export default function CorrelationChart({ data, title }) {
                   fillOpacity={0.8} 
                   className="transition-all duration-500"
                 />
+                <text 
+                  x={groupX + barW * 1.5 + 4} 
+                  y={padding.top + chartH - occupancyH - 6} 
+                  textAnchor="middle" 
+                  fontSize={10} 
+                  fill="#b45309" 
+                  fontWeight="bold"
+                >
+                  {d.occupancyLabel || '0%'}
+                </text>
 
                 {/* X-axis Label */}
                 <text 
