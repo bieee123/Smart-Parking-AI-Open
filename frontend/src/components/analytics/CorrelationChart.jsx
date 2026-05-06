@@ -7,54 +7,66 @@
  *  - title: string
  */
 export default function CorrelationChart({ data, title }) {
-  const padding = { top: 40, right: 30, bottom: 40, left: 40 };
+  const padding = { top: 40, right: 60, bottom: 30, left: 160 };
   const W = 600;
   const H = 300;
   const chartW = W - padding.left - padding.right;
   const chartH = H - padding.top - padding.bottom;
   
-  const groupW = chartW / Math.max(1, data.length);
-  const barW = groupW * 0.35;
-  const gap = groupW * 0.1;
+  const groupH = chartH / Math.max(1, data.length);
+  const barH = Math.min(groupH * 0.42, 36); // Increased max height to 36px and multiplier to 42%
+  const gap = (groupH - barH * 2 - 4) / 2; // vertically center the group
 
   return (
     <div className="w-full">
       {title && <h3 className="text-lg font-semibold text-gray-700 mb-6">{title}</h3>}
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{ minHeight: 200 }}>
-          {/* Grid lines */}
+          {/* Grid lines (vertical now) */}
           {[0, 0.25, 0.5, 0.75, 1].map(v => {
-            const y = padding.top + chartH * (1 - v);
+            const x = padding.left + chartW * v;
             return (
               <g key={v}>
-                <line x1={padding.left} y1={y} x2={W - padding.right} y2={y} stroke="#f3f4f6" strokeWidth={1} />
-                <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize={10} fill="#9ca3af">{v * 100}%</text>
+                <line x1={x} y1={padding.top} x2={x} y2={H - padding.bottom} stroke="#f3f4f6" strokeWidth={1} />
+                <text x={x} y={H - padding.bottom + 16} textAnchor="middle" fontSize={10} fill="#9ca3af">{v * 100}%</text>
               </g>
             );
           })}
 
           {data.map((d, i) => {
-            const groupX = padding.left + i * groupW + gap;
-            const trafficH = d.traffic * chartH;
-            const occupancyH = d.occupancy * chartH;
+            const groupY = padding.top + i * groupH + gap;
+            const trafficW = d.traffic * chartW;
+            const occupancyW = d.occupancy * chartW;
 
             return (
               <g key={i}>
+                {/* Y-axis Label */}
+                <text 
+                  x={padding.left - 10} 
+                  y={groupY + barH + 2} 
+                  textAnchor="end" 
+                  fontSize={11} 
+                  fontWeight="500"
+                  fill="#4b5563"
+                >
+                  {d.label}
+                </text>
+
                 {/* Traffic bar */}
                 <rect 
-                  x={groupX} 
-                  y={padding.top + chartH - trafficH} 
-                  width={barW} 
-                  height={trafficH} 
+                  x={padding.left} 
+                  y={groupY} 
+                  width={trafficW} 
+                  height={barH} 
                   rx={4} 
                   fill="#3b82f6" 
                   fillOpacity={0.8} 
                   className="transition-all duration-500"
                 />
                 <text 
-                  x={groupX + barW/2} 
-                  y={padding.top + chartH - trafficH - 6} 
-                  textAnchor="middle" 
+                  x={padding.left + trafficW + 6} 
+                  y={groupY + barH/2 + 3} 
+                  textAnchor="start" 
                   fontSize={10} 
                   fill="#1d4ed8" 
                   fontWeight="bold"
@@ -64,36 +76,24 @@ export default function CorrelationChart({ data, title }) {
 
                 {/* Occupancy bar */}
                 <rect 
-                  x={groupX + barW + 4} 
-                  y={padding.top + chartH - occupancyH} 
-                  width={barW} 
-                  height={occupancyH} 
+                  x={padding.left} 
+                  y={groupY + barH + 4} 
+                  width={occupancyW} 
+                  height={barH} 
                   rx={4} 
                   fill="#f59e0b" 
                   fillOpacity={0.8} 
                   className="transition-all duration-500"
                 />
                 <text 
-                  x={groupX + barW * 1.5 + 4} 
-                  y={padding.top + chartH - occupancyH - 6} 
-                  textAnchor="middle" 
+                  x={padding.left + occupancyW + 6} 
+                  y={groupY + barH * 1.5 + 4 + 3} 
+                  textAnchor="start" 
                   fontSize={10} 
                   fill="#b45309" 
                   fontWeight="bold"
                 >
                   {d.occupancyLabel || '0%'}
-                </text>
-
-                {/* X-axis Label */}
-                <text 
-                  x={groupX + barW} 
-                  y={H - padding.bottom + 18} 
-                  textAnchor="middle" 
-                  fontSize={11} 
-                  fontWeight="500"
-                  fill="#4b5563"
-                >
-                  {d.label}
                 </text>
               </g>
             );
