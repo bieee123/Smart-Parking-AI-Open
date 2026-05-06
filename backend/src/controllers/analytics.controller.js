@@ -86,23 +86,56 @@ export const getOccupancyTrends = asyncHandler(async (req, res) => {
  * Returns violation hotspots based on parking logs (e.g. overstays).
  */
 export const getViolationHotspots = asyncHandler(async (req, res) => {
-  const cacheKey = 'analytics:hotspots:v1';
+  const cacheKey = 'analytics:hotspots:v2';
   const cached = await getCache(cacheKey);
   if (cached) return res.json({ ...cached, source: 'cache' });
 
-  // Currently simulating hotspots based on slots with most logs
-  const hotspots = await db.select({
-    slot_id: parkingLogs.slot_id,
-    violationCount: sql`count(*)`.mapWith(Number),
-  })
-    .from(parkingLogs)
-    .groupBy(parkingLogs.slot_id)
-    .orderBy(desc(sql`count(*)`))
-    .limit(10);
+  try {
+    const collection = await getCollection('violation_history');
+    
+    // Get last 24h violations
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentViolations = await collection.find({ timestamp: { $gte: yesterday } }).toArray();
+    
+    // Group by camera_id
+    const grouped = {};
+    recentViolations.forEach(v => {
+      const loc = v.camera_id || v.zone || 'Unknown Area';
+      if (!grouped[loc]) grouped[loc] = 0;
+      grouped[loc]++;
+    });
 
-  const payload = { success: true, data: { hotspots }, generatedAt: new Date().toISOString() };
-  await setCache(cacheKey, payload, TTL_HOTSPOTS);
-  res.json(payload);
+    const maxViolations = Math.max(1, ...Object.values(grouped));
+
+    const activeHotspots = Object.keys(grouped).map(loc => ({
+      zone: loc,
+      violationCount: grouped[loc],
+      severityScore: grouped[loc] / maxViolations // normalized 0 to 1
+    })).sort((a, b) => b.violationCount - a.violationCount);
+
+    // Pad with empty zones to make exactly 25 blocks for the 5x5 grid
+    const hotspots = [];
+    for (let i = 0; i < 25; i++) {
+      if (i < activeHotspots.length) {
+        hotspots.push(activeHotspots[i]);
+      } else {
+        hotspots.push({
+          zone: `Safe Zone ${i+1 - activeHotspots.length}`,
+          violationCount: 0,
+          severityScore: 0
+        });
+      }
+    }
+
+    const payload = { success: true, data: { hotspots }, generatedAt: new Date().toISOString() };
+    await setCache(cacheKey, payload, TTL_HOTSPOTS);
+    res.json(payload);
+  } catch (err) {
+    console.error('[Analytics] Hotspots Error:', err);
+    // Fallback if MongoDB is unreachable
+    const hotspots = Array.from({length: 25}).map((_, i) => ({ zone: `Area ${i+1}`, severityScore: 0 }));
+    res.json({ success: true, data: { hotspots }, generatedAt: new Date().toISOString() });
+  }
 });
 
 /**

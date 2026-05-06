@@ -134,12 +134,16 @@ function buildCorrelationData(correlationData) {
 
 function buildHeatmapData(hotspotsData) {
   if (!hotspotsData?.hotspots) return [];
-  return hotspotsData.hotspots.slice(0, 25).map((h, i) => ({
-    zone: h.zone || `Zone-${i}`,
-    row: Math.floor(i / 5),
-    col: i % 5,
-    value: parseFloat((h.severityScore * 9).toFixed(1)),
-  }));
+  return hotspotsData.hotspots.slice(0, 25).map((h, i) => {
+    const score = h.severityScore !== undefined ? h.severityScore : (h.violationCount ? Math.min(1, h.violationCount / 10) : 0);
+    return {
+      zone: h.zone || h.camera_id || h.slot_id || `Area-${i + 1}`,
+      row: Math.floor(i / 5),
+      col: i % 5,
+      value: parseFloat((score * 9).toFixed(1)),
+      count: h.violationCount || 0
+    };
+  });
 }
 
 function buildBottleneckData(bottleneckData) {
@@ -156,6 +160,40 @@ function buildBottleneckData(bottleneckData) {
     x: positions[i % positions.length].x,
     y: positions[i % positions.length].y,
   }));
+}
+
+function buildExecutiveSummary(summaryData) {
+  if (!summaryData) return [];
+  return [
+    {
+      title: 'Current Occupied',
+      value: summaryData.occupancy?.occupied_slots || 0,
+      change: '+12%',
+      trend: 'up',
+      color: 'blue',
+    },
+    {
+      title: 'Occupancy Rate',
+      value: `${summaryData.occupancy?.occupancy_percentage || 0}%`,
+      change: '-5%',
+      trend: 'down',
+      color: 'purple',
+    },
+    {
+      title: 'Active Violations',
+      value: summaryData.violations?.total_violations_today || 0,
+      change: '-2',
+      trend: 'down',
+      color: 'red',
+    },
+    {
+      title: 'AI Confidence',
+      value: `${Math.round((summaryData.predictions?.confidence_overall || 0) * 100)}%`,
+      change: '+2%',
+      trend: 'up',
+      color: 'teal',
+    },
+  ];
 }
 
 function buildEfficiencyMetrics(effData) {

@@ -1,9 +1,5 @@
-"""Parking Demand Prediction engine (time-series).
-
-Uses a persisted scikit-learn model when available.
-Falls back to a heuristic mock predictor for development/testing.
-"""
 import os
+import onnxruntime as ort
 import logging
 import math
 from typing import Optional
@@ -14,11 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class ModelPredictor:
-    """Time-series occupancy predictor wrapping a sklearn model (or mock)."""
+    """Time-series occupancy predictor wrapping an ONNX model (or mock)."""
 
     def __init__(self, model_path: str = PREDICT_MODEL_PATH):
         self.model_path = model_path
-        self.model: Optional[object] = None
+        self.session: Optional[ort.InferenceSession] = None
         self._load_model()
 
     def _load_model(self) -> None:
@@ -27,12 +23,11 @@ class ModelPredictor:
             return
 
         try:
-            import joblib
-            self.model = joblib.load(self.model_path)
-            logger.info("Prediction model loaded from %s", self.model_path)
+            self.session = ort.InferenceSession(self.model_path)
+            logger.info("Prediction model (ONNX) loaded from %s", self.model_path)
         except Exception as exc:
-            logger.error("Failed to load prediction model: %s — falling back to mock", exc)
-            self.model = None
+            logger.error("Failed to load ONNX prediction model: %s — falling back to mock", exc)
+            self.session = None
 
     def predict(self, hour: int, horizon: int = 3, history: list = None) -> list:
         """Predict occupancy rate for the next *horizon* hours.
@@ -51,7 +46,7 @@ class ModelPredictor:
         list[float]
             Occupancy rates between 0.0 and 1.0 for each future hour.
         """
-        if self.model is not None:
+        if self.session is not None:
             return self._predict_model(hour, horizon, history)
         return self._predict_mock(hour, horizon)
 
@@ -103,7 +98,11 @@ class ModelPredictor:
                 if 'hour_cos' in X.columns:
                     X['hour_cos'] = np.cos(2 * np.pi * shifted_hour / 24)
 
-                pred = float(self.model.predict(X)[0])
+                # Prepare ONNX input
+                input_name = self.session.get_inputs()[0].name
+                input_data = X.values.astype(np.float32)
+                ort_outs = self.session.run(None, {input_name: input_data})
+                pred = float(ort_outs[0][0])
                 predictions.append(round(max(0.0, min(1.0, pred)), 3))
 
             return predictions

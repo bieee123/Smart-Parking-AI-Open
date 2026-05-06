@@ -49,20 +49,21 @@ export default function ViolationHeatmap({ data, rows = 5, cols = 5, title }) {
             Row {r + 1}
           </div>
           <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-            {Array.from({ length: cols }, (_, c) => {
-              const cell = data.find((d) => d.row === r && d.col === c);
-              const val = cell ? cell.value : 0;
-              const zone = cell ? cell.zone : '—';
-              return (
-                <div
-                  key={c}
-                  className={`rounded flex items-center justify-center text-xs font-medium aspect-square transition-all cursor-default ${getColor(val)}`}
-                  title={`Zone: ${zone} | Severity: ${val.toFixed(1)}`}
-                >
-                  {val.toFixed(1)}
-                </div>
-              );
-            })}
+              {Array.from({ length: cols }, (_, c) => {
+                const cell = data.find((d) => d.row === r && d.col === c);
+                const val = cell ? cell.value : 0;
+                const count = cell ? cell.count : 0;
+                const zone = cell ? cell.zone : '—';
+                return (
+                  <div
+                    key={c}
+                    className={`rounded flex items-center justify-center text-[10px] font-bold aspect-square transition-all cursor-default ${getColor(val)}`}
+                    title={`Zone: ${zone} | Violations: ${count}`}
+                  >
+                    {count > 0 ? count : '—'}
+                  </div>
+                );
+              })}
           </div>
         </div>
       ))}

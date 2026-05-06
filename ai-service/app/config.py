@@ -11,7 +11,7 @@ HOST = os.getenv("HOST", "0.0.0.0")
 # Model paths
 LPR_MODEL_PATH = os.getenv("LPR_MODEL_PATH", "models/lpr_model.onnx")
 VEHICLE_MODEL_PATH = os.getenv("VEHICLE_MODEL_PATH", "models/vehicle_model.onnx")
-PREDICT_MODEL_PATH = os.getenv("PREDICT_MODEL_PATH", "models/prediction_model.pkl")
+PREDICT_MODEL_PATH = os.getenv("PREDICT_MODEL_PATH", "models/prediction_model.onnx")
 
 # CORS
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8000,http://localhost:5173").split(",")

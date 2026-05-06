@@ -303,7 +303,9 @@ export default function ExecutiveSummaryPage() {
                 </h2>
                 {occ?.areas ? (
                   <div className="space-y-3">
-                    {occ.areas.map((area, i) => <OccupancyBar key={i} area={area} />)}
+                    {[...occ.areas]
+                      .sort((a, b) => a.area.localeCompare(b.area))
+                      .map((area, i) => <OccupancyBar key={i} area={area} />)}
                   </div>
                 ) : <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">No data</p>}
                 {occ?.highest_occupancy && (
