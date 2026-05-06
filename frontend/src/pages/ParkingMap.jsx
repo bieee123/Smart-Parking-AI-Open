@@ -187,9 +187,11 @@ export default function ParkingMap() {
       )}
 
       {/* Zone Groups */}
-      {Object.entries(groupedByZone).map(([zoneName, zoneSlots]) => (
-        <ZoneSection key={zoneName} zone={zoneName} slots={zoneSlots} onSlotClick={handleSlotClick} />
-      ))}
+      {Object.entries(groupedByZone)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([zoneName, zoneSlots]) => (
+          <ZoneSection key={zoneName} zone={zoneName} slots={zoneSlots} onSlotClick={handleSlotClick} />
+        ))}
 
       {/* Slot Detail Modal */}
       {selectedSlot && (

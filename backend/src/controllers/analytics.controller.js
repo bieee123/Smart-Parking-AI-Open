@@ -133,24 +133,91 @@ export const getViolationHotspots = asyncHandler(async (req, res) => {
   } catch (err) {
     console.error('[Analytics] Hotspots Error:', err);
     // Fallback if MongoDB is unreachable
-    const hotspots = Array.from({length: 25}).map((_, i) => ({ zone: `Area ${i+1}`, severityScore: 0 }));
+    const hotspots = Array.from({length: 25}).map((_, i) => ({ zone: `Area ${i+1}`, violationCount: 0, severityScore: 0 }));
     res.json({ success: true, data: { hotspots }, generatedAt: new Date().toISOString() });
   }
 });
 
 /**
- * Returns entry/exit bottleneck analysis.
+ * Returns entry/exit bottleneck analysis based on real parking log data.
  */
 export const getBottlenecks = asyncHandler(async (req, res) => {
-  // Logic to find hours with highest inflow/outflow
-  const payload = {
-    success: true,
-    data: {
-      inflowBottlenecks: [{ hour: '08:00', intensity: 0.85 }, { hour: '17:00', intensity: 0.92 }],
-      outflowBottlenecks: [{ hour: '12:00', intensity: 0.75 }, { hour: '18:00', intensity: 0.88 }]
-    }
-  };
-  res.json(payload);
+  const cacheKey = 'analytics:bottlenecks:v2';
+  const cached = await getCache(cacheKey);
+  if (cached) return res.json({ ...cached, source: 'cache' });
+
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Fetch logs from the last 7 days
+    const logs = await db.select({
+      entry_time: parkingLogs.entry_time,
+      exit_time: parkingLogs.exit_time,
+      slot_id: parkingLogs.slot_id,
+    })
+    .from(parkingLogs)
+    .where(gte(parkingLogs.entry_time, sevenDaysAgo));
+
+    // Tally inflow (entries) and outflow (exits) per hour of day
+    const inflowByHour = Array(24).fill(0);
+    const outflowByHour = Array(24).fill(0);
+
+    logs.forEach(log => {
+      if (log.entry_time) {
+        inflowByHour[new Date(log.entry_time).getHours()]++;
+      }
+      if (log.exit_time) {
+        outflowByHour[new Date(log.exit_time).getHours()]++;
+      }
+    });
+
+    const maxInflow = Math.max(1, ...inflowByHour);
+    const maxOutflow = Math.max(1, ...outflowByHour);
+
+    // Find top 3 inflow and outflow peak hours
+    const inflowBottlenecks = inflowByHour
+      .map((count, hour) => ({ hour: `${String(hour).padStart(2,'0')}:00`, count, intensity: count / maxInflow }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+      .map(({ hour, intensity }) => ({ hour, intensity: parseFloat(intensity.toFixed(2)) }));
+
+    const outflowBottlenecks = outflowByHour
+      .map((count, hour) => ({ hour: `${String(hour).padStart(2,'0')}:00`, count, intensity: count / maxOutflow }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+      .map(({ hour, intensity }) => ({ hour, intensity: parseFloat(intensity.toFixed(2)) }));
+
+    // Build bottlenecks list for BottleneckMap component
+    const bottlenecksList = inflowBottlenecks.map((b, i) => ({
+      bottleneckId: `inflow-${i}`,
+      locationName: `Entry Peak ${b.hour}`,
+      areaName: `Peak Hour`,
+      severityScore: b.intensity,
+      resolutionStatus: b.intensity > 0.8 ? 'active' : 'monitored',
+    }));
+
+    const payload = {
+      success: true,
+      data: {
+        inflowBottlenecks,
+        outflowBottlenecks,
+        bottlenecks: bottlenecksList,
+        total_logs_analyzed: logs.length,
+      },
+      generatedAt: new Date().toISOString(),
+    };
+
+    await setCache(cacheKey, payload, TTL_BOTTLENECK);
+    res.json(payload);
+  } catch (err) {
+    console.error('[Analytics] Bottlenecks Error:', err);
+    // Fallback to empty data (not hardcoded mock)
+    res.json({
+      success: true,
+      data: { inflowBottlenecks: [], outflowBottlenecks: [], bottlenecks: [] },
+      generatedAt: new Date().toISOString(),
+    });
+  }
 });
 
 /**

@@ -108,12 +108,22 @@ async function generateViolationSummary() {
         severity: h.violations > 5 ? 'high' : 'medium'
       }));
 
+    // Compare with yesterday
+    const dayBefore = new Date(today);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    const yesterdayViolations = await collection.find({ timestamp: { $gte: dayBefore, $lt: today } }).toArray();
+    const yesterdayCount = yesterdayViolations.length;
+    const changePercent = yesterdayCount > 0
+      ? parseFloat((((totalToday - yesterdayCount) / yesterdayCount) * 100).toFixed(1))
+      : 0;
+    const trendDirection = changePercent > 0 ? 'up' : changePercent < 0 ? 'down' : 'stable';
+
     return {
       generated_at: new Date().toISOString(),
       total_violations_today: totalToday,
       breakdown,
       top_hotspots: hotspots,
-      trend: { direction: 'stable', change_percent: 0, comparison: 'vs average' },
+      trend: { direction: trendDirection, change_percent: changePercent, comparison: 'vs yesterday' },
       resolution_rate: 0.85,
       avg_resolution_time_minutes: 20
     };
@@ -231,7 +241,10 @@ export async function generateExecutiveSummary() {
     const violations = await generateViolationSummary();
     const recommendations = generateRecommendations(occupancy, predictions, violations);
 
-    const health_score = 85.5; // Mock score formula
+    // Dynamic health score: starts at 100, penalized by high occupancy and violations
+    const occPenalty = Math.max(0, (occupancy.occupancy_percentage - 80)) * 0.5; // -0.5 per % above 80
+    const violPenalty = Math.min(20, violations.total_violations_today * 1.5);    // up to -20 for violations
+    const health_score = parseFloat(Math.max(10, 100 - occPenalty - violPenalty).toFixed(1));
     
     return {
       success: true,

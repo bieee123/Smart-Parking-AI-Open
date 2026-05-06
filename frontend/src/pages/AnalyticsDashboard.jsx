@@ -63,16 +63,30 @@ function buildOccupancyData(trendsData, range) {
   if (!trendsData?.trends || trendsData.trends.length === 0) return { data: [], labels: [] };
   const trend = trendsData.trends[0];
   const points = trend.dataPoints || [];
-  const sample = range === 'daily'
-    ? points.filter((_, i) => i % 24 === 0).slice(-7)
-    : range === 'weekly'
-      ? points.filter((_, i) => i % (24 * 7) === 0).slice(-4)
-      : points.slice(-24);
+  let sample;
+  if (range === 'hourly') {
+    // Last 24 hours, 1 per hour
+    sample = points.slice(-24);
+  } else if (range === 'daily') {
+    // Last 7 days, 1 per day (every 24th point from the end)
+    const daily = [];
+    for (let i = points.length - 1; i >= 0 && daily.length < 7; i -= 24) {
+      daily.unshift(points[i]);
+    }
+    sample = daily;
+  } else {
+    // Weekly: last 4 weeks, 1 per week (every 168th point)
+    const weekly = [];
+    for (let i = points.length - 1; i >= 0 && weekly.length < 4; i -= 168) {
+      weekly.unshift(points[i]);
+    }
+    sample = weekly;
+  }
   return {
-    data: sample.map(p => Math.round(p.occupancyRate * 100)),
+    data: sample.map(p => Math.round((p.occupancyRate || 0) * 100)),
     labels: sample.map(p => {
       const d = new Date(p.timestamp);
-      if (range === 'hourly') return `${d.getHours()}:00`;
+      if (range === 'hourly') return `${String(d.getHours()).padStart(2,'0')}:00`;
       if (range === 'weekly') return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
       return d.toLocaleDateString('en', { weekday: 'short' });
     }),
@@ -83,18 +97,17 @@ function buildPredictionData(summaryData, trendsData, horizon = 6) {
   const preds = (summaryData?.predictions?.predicted_next_6_hours || []).slice(0, horizon);
   const trends = trendsData?.trends?.[0]?.dataPoints || [];
 
-  // Get last 3 hours of actual data and create companion "predicted" data for visual comparison
+  // Get last 3 hours of actual data
   const recentActuals = trends.slice(-3).map(p => {
-    const actualVal = Math.round(p.occupancyRate * 100);
+    const actualVal = Math.round((p.occupancyRate || 0) * 100);
     return {
-      hour: `${new Date(p.timestamp).getHours()}:00`,
-      // For history, show both bars. Predicted will be close to Actual for demo purposes.
-      predicted: Math.max(0, Math.min(100, actualVal + (Math.random() * 10 - 5))),
+      hour: `${String(new Date(p.timestamp).getHours()).padStart(2,'0')}:00`,
+      predicted: null,
       actual: actualVal
     };
   });
 
-  // Combine with future predictions (where Actual is null/not yet happened)
+  // Future predictions (where Actual is null)
   const futurePredictions = preds.map(p => ({
     hour: p.time_label,
     predicted: Math.round(p.predicted_occupancy_percentage),
