@@ -19,6 +19,8 @@ import dashboardRoutes from './src/routes/dashboard.routes.js';
 import logsRoutes from './src/routes/logs.routes.js';
 import liveRoutes from './src/routes/live.routes.js';
 import ingestionRoutes from './src/routes/ingestion.routes.js';
+import profileRoutes from './src/routes/profile.routes.js';
+import adminRoutes from './src/routes/admin.routes.js';
 
 // Middlewares
 import { errorHandler, notFoundHandler } from './src/middlewares/error.js';
@@ -42,6 +44,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/live', liveRoutes);
 app.use('/api/ingest', ingestionRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

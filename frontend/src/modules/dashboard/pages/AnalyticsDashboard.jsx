@@ -10,7 +10,7 @@ import ViolationHeatmap from '../components/analytics/ViolationHeatmap';
 import BottleneckMap from '../components/analytics/BottleneckMap';
 import EfficiencyStats from '../components/analytics/EfficiencyStats';
 
-import { api } from '../services/api';
+import { api } from '../../../services/api';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function SkeletonCard({ className = '', h = 'h-56' }) {

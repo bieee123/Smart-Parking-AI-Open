@@ -35,7 +35,25 @@ export const api = {
   auth: {
     login: (credentials) =>
       request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
-    getProfile: () => request('/auth/profile'),
+  },
+
+  // User Profile
+  profile: {
+    get: () => request('/profile'),
+    update: (data) =>
+      request('/profile', { method: 'PUT', body: JSON.stringify(data) }),
+    changePassword: (data) =>
+      request('/profile/password', { method: 'POST', body: JSON.stringify(data) }),
+    getActivities: () => request('/profile/activities'),
+    deleteAccount: () => request('/profile', { method: 'DELETE' }),
+  },
+
+  // Admin Management
+  admin: {
+    listUsers: () => request('/admin/users'),
+    createUser: (data) => request('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+    updateUser: (id, data) => request(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteUser: (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
   },
 
   // Parking Slots

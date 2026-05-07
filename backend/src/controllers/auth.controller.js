@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { eq, or } from 'drizzle-orm';
 import { db } from '../db/postgres.js';
-import { users } from '../db/drizzle/schema.js';
+import { users, userActivities } from '../db/drizzle/schema.js';
 import config from '../config/env.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -98,6 +98,18 @@ export const login = asyncHandler(async (req, res) => {
     config.jwtSecret,
     { expiresIn: '24h' }
   );
+
+  // Log successful login
+  try {
+    await db.insert(userActivities).values({
+      user_id: user.id,
+      action: 'login',
+      device_info: req.headers['user-agent'] || 'Unknown Device',
+      ip_address: req.ip || req.headers['x-forwarded-for'] || '127.0.0.1',
+    });
+  } catch (err) {
+    console.error('[LOGIN_LOG_ERROR]', err.message);
+  }
 
   console.log(`[LOGIN] Login successful for user "${user.username}", token generated`);
 

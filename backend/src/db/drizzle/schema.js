@@ -15,7 +15,13 @@ export const users = pgTable('users', {
   username: varchar('username', { length: 50 }).notNull().unique(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   password_hash: text('password_hash').notNull(),
-  role: varchar('role', { length: 20 }).notNull().default('user'), // admin, operator, user
+  full_name: varchar('full_name', { length: 100 }),
+  job_title: varchar('job_title', { length: 100 }),
+  phone: varchar('phone', { length: 20 }),
+  bio: text('bio'),
+  avatar_url: text('avatar_url'),
+  assigned_zones: text('assigned_zones'), // JSON string or comma-separated
+  role: varchar('role', { length: 20 }).notNull().default('user'), // admin, operator, viewer
   is_active: boolean('is_active').notNull().default(true),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
@@ -86,10 +92,12 @@ export const analysisHistory = pgTable('ai_analysis_history', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
-// AI Detections schema (for reference, stored in MongoDB)
-// Collection: ai_detections
-// Fields: { _id, slot_id, license_plate, vehicle_type, confidence, timestamp, image_url }
-
-// Camera Logs schema (for reference, stored in MongoDB)
-// Collection: camera_logs
-// Fields: { _id, camera_id, status, last_heartbeat, snapshot_url, created_at }
+// User Activities (Security Logs)
+export const userActivities = pgTable('user_activities', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  user_id: uuid('user_id').references(() => users.id).notNull(),
+  action: varchar('action', { length: 50 }).notNull(), // login, password_change, profile_update
+  device_info: text('device_info'), // e.g. Chrome on Windows
+  ip_address: varchar('ip_address', { length: 45 }),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

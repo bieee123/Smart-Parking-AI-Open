@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Hls from 'hls.js';
-import { api } from '../services/api';
-import { formatDate } from '../utils/helpers';
+import { api } from '../../../services/api';
+import { formatDate } from '../../../utils/helpers';
 import {
   HiCamera, HiTruck, HiChip, HiCloudUpload, HiPlay, HiCheckCircle,
   HiRefresh, HiChevronRight, HiDownload, HiTrash, HiInformationCircle, HiX

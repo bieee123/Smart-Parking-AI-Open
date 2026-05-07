@@ -10,36 +10,42 @@ const navItems = [
     label: 'Dashboard',
     exact: true,
     icon: <HiViewGrid className="w-5 h-5" />,
+    roles: ['admin', 'operator', 'viewer'],
   },
   {
     path: '/dashboard/analytics',
     label: 'Analytics',
     exact: true,
     icon: <HiChartBar className="w-5 h-5" />,
+    roles: ['admin', 'operator'],
   },
   {
     path: '/map-parking',
     label: 'Parking Map',
     exact: true,
     icon: <HiMap className="w-5 h-5" />,
+    roles: ['admin', 'operator', 'viewer'],
   },
   {
     path: '/live-camera',
     label: 'Live Camera',
     exact: true,
     icon: <HiVideoCamera className="w-5 h-5" />,
+    roles: ['admin', 'operator'],
   },
   {
     path: '/simulator',
     label: 'Simulator',
     exact: true,
     icon: <HiLightningBolt className="w-5 h-5" />,
+    roles: ['admin'],
   },
   {
     path: '/executive-summary',
     label: 'Exec Summary',
     exact: true,
     icon: <HiDocumentReport className="w-5 h-5" />,
+    roles: ['admin'],
   },
 ];
 
@@ -56,11 +62,26 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const user = (() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const userRole = user?.role || 'viewer';
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login', { replace: true });
   };
+
+  const filteredNavItems = navItems.filter(item => 
+    !item.roles || item.roles.includes(userRole)
+  );
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-slate-900 text-white flex flex-col z-30">
@@ -74,7 +95,7 @@ export default function Sidebar() {
 
       {/* Navigation — scrollable */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           // Use exact match to prevent double-highlight bugs
           const active = isActiveRoute(location.pathname, item.path, item.exact);
           return (
@@ -84,7 +105,7 @@ export default function Sidebar() {
               end={item.exact}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >

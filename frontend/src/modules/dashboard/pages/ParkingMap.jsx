@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { parkingApi } from '../services/parking';
-import FilterBar from '../components/FilterBar';
-import Legend from '../components/Legend';
-import ParkingSlot from '../components/ParkingSlot';
-import SlotModal from '../components/SlotModal';
+import { parkingApi } from '../../../services/parking';
+import FilterBar from '../../../components/FilterBar';
+import Legend from '../../../components/Legend';
+import ParkingSlot from '../../../components/ParkingSlot';
+import SlotModal from '../../../components/SlotModal';
 import { 
   HiMap, HiInbox, HiHashtag, HiCheckCircle, 
   HiMinusCircle, HiBookmark, HiBan, HiChartPie 

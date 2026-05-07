@@ -15,6 +15,13 @@
       "when": 1778017719823,
       "tag": "0001_modern_deathstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778176250173,
+      "tag": "0002_lonely_shotgun",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';
-import { formatDate } from '../utils/helpers';
+import { api } from '../../../services/api';
+import { formatDate } from '../../../utils/helpers';
 import { 
   HiHashtag, HiMinusCircle, HiCheckCircle, HiChartPie, 
   HiVideoCamera, HiMap, HiExclamation, HiChevronRight 

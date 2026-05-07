@@ -1,13 +1,21 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import LiveCamera from './pages/LiveCamera';
-import ParkingMap from './pages/ParkingMap';
-import AnalyticsDashboard from './pages/AnalyticsDashboard';
-import SimulatorPage from './pages/SimulatorPage';
-import ExecutiveSummaryPage from './pages/ExecutiveSummaryPage';
+import ProfileLayout from './layouts/ProfileLayout';
+import Login from './modules/public/pages/Login';
+import Dashboard from './modules/dashboard/pages/Dashboard';
+import LiveCamera from './modules/dashboard/pages/LiveCamera';
+import ParkingMap from './modules/dashboard/pages/ParkingMap';
+import AnalyticsDashboard from './modules/dashboard/pages/AnalyticsDashboard';
+import SimulatorPage from './modules/dashboard/pages/SimulatorPage';
+import ExecutiveSummaryPage from './modules/dashboard/pages/ExecutiveSummaryPage';
+
+// Profile Pages
+import AccountInfo from './modules/profile/pages/AccountInfo';
+import UserManagement from './modules/profile/pages/UserManagement';
+import Security from './modules/profile/pages/Security';
+import Personalization from './modules/profile/pages/Personalization';
+import Sessions from './modules/profile/pages/Sessions';
 
 function NotFound() {
   return (
@@ -33,7 +41,7 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'operator', 'viewer']}>
             <DashboardLayout>
               <Dashboard />
             </DashboardLayout>
@@ -43,7 +51,7 @@ function App() {
       <Route
         path="/live-camera"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'operator']}>
             <DashboardLayout>
               <LiveCamera />
             </DashboardLayout>
@@ -53,7 +61,7 @@ function App() {
       <Route
         path="/map-parking"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'operator', 'viewer']}>
             <DashboardLayout>
               <ParkingMap />
             </DashboardLayout>
@@ -63,7 +71,7 @@ function App() {
       <Route
         path="/dashboard/analytics"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'operator']}>
             <DashboardLayout>
               <AnalyticsDashboard />
             </DashboardLayout>
@@ -73,7 +81,7 @@ function App() {
       <Route
         path="/simulator"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin']}>
             <DashboardLayout>
               <SimulatorPage />
             </DashboardLayout>
@@ -86,10 +94,62 @@ function App() {
       <Route
         path="/executive-summary"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin']}>
             <DashboardLayout>
               <ExecutiveSummaryPage />
             </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Profile Sections — wrapped in ProfileLayout */}
+      <Route
+        path="/profile/account"
+        element={
+          <ProtectedRoute>
+            <ProfileLayout>
+              <AccountInfo />
+            </ProfileLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/users"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <ProfileLayout>
+              <UserManagement />
+            </ProfileLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/security"
+        element={
+          <ProtectedRoute>
+            <ProfileLayout>
+              <Security />
+            </ProfileLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/personalization"
+        element={
+          <ProtectedRoute>
+            <ProfileLayout>
+              <Personalization />
+            </ProfileLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/sessions"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'operator']}>
+            <ProfileLayout>
+              <Sessions />
+            </ProfileLayout>
           </ProtectedRoute>
         }
       />
