@@ -103,21 +103,23 @@ class InferenceEngine:
 
         conf_thresh = conf if conf is not None else CONFIDENCE_THRESHOLD
         try:
+            # Reverting to 640 for ONNX fixed-shape compatibility
             results = yolo(frame, conf=conf_thresh, iou=NMS_IOU_THRESHOLD,
-                           verbose=False, imgsz=640)
+                           verbose=False, imgsz=640, augment=False, agnostic_nms=True)
             detections = []
             if results and len(results) > 0:
                 boxes = results[0].boxes
                 if boxes is not None and len(boxes) > 0:
                     for box in boxes:
-                        x1, y1, x2, y2 = box.xyxy[0].tolist()
+                        # Use normalized coordinates (0.0 to 1.0) for frontend consistency
+                        # xyxyn provides [x1, y1, x2, y2] normalized
+                        x1, y1, x2, y2 = box.xyxyn[0].tolist()
                         w = x2 - x1
                         h = y2 - y1
                         confidence = float(box.conf[0])
                         cls_id = int(box.cls[0])
-                        detections.append([x1, y1, w, h, confidence, cls_id])
-            logger.info("[InferenceEngine] %s: %d detections (conf>=%.2f)",
-                        model_name, len(detections), conf_thresh)
+                        detections.append([float(x1), float(y1), float(w), float(h), confidence, cls_id])
+            logger.info("[InferenceEngine] %s: %d detections", model_name, len(detections))
             return detections
         except Exception as e:
             logger.error("[InferenceEngine] YOLO %s error: %s", model_name, e, exc_info=True)
@@ -185,12 +187,17 @@ class InferenceEngine:
 
         try:
             h_orig, w_orig = frame.shape[:2]
-            x1 = max(0, int(float(plate_box[0])))
-            y1 = max(0, int(float(plate_box[1])))
-            x2 = min(w_orig, int(float(plate_box[0]) + float(plate_box[2])))
-            y2 = min(h_orig, int(float(plate_box[1]) + float(plate_box[3])))
+            
+            # Denormalize: convert 0-1 coordinates back to pixels for cropping
+            nx, ny, nw, nh = float(plate_box[0]), float(plate_box[1]), float(plate_box[2]), float(plate_box[3])
+            
+            x1 = max(0, int(nx * w_orig))
+            y1 = max(0, int(ny * h_orig))
+            x2 = min(w_orig, int((nx + nw) * w_orig))
+            y2 = min(h_orig, int((ny + nh) * h_orig))
 
-            if x2 <= x1 + 5 or y2 <= y1 + 5:
+            if x2 <= x1 + 2 or y2 <= y1 + 2:
+                logger.warning("[InferenceEngine] Plate box too small for OCR: %dx%d", x2-x1, y2-y1)
                 return fallback
 
             plate_crop = frame[y1:y2, x1:x2]

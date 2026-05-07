@@ -24,7 +24,7 @@ ILLEGAL_CLASS_ILLEGAL = 2
 CROWD_VEHICLE_CLASSES = {3: 'car', 4: 'van', 5: 'truck', 8: 'bus', 9: 'motor', 2: 'bicycle'}
 
 IOU_THRESHOLD  = 0.45
-CONF_THRESHOLD = 0.50   # Increased from 0.20 — stricter filter
+CONF_THRESHOLD = 0.35   # Adjusted for better top-view detection stability
 
 
 def to_float(v):
@@ -99,10 +99,11 @@ class EnsembleEngine:
             def norm(box):
                 if len(box) < 6:
                     return None
-                x1_n = max(0.0, min(to_float(box[0]) / W_orig, 1.0))
-                y1_n = max(0.0, min(to_float(box[1]) / H_orig, 1.0))
-                w_n  = max(0.0, min(to_float(box[2]) / W_orig, 1.0))
-                h_n  = max(0.0, min(to_float(box[3]) / H_orig, 1.0))
+                # Coordinates are already normalized (0.0-1.0) from InferenceEngine
+                x1_n = max(0.0, min(to_float(box[0]), 1.0))
+                y1_n = max(0.0, min(to_float(box[1]), 1.0))
+                w_n  = max(0.0, min(to_float(box[2]), 1.0))
+                h_n  = max(0.0, min(to_float(box[3]), 1.0))
                 return [x1_n, y1_n, w_n, h_n, to_float(box[4]), int(box[5])]
 
             norm_boxes      = [nb for nb in (norm(b) for b in deduped_vehicles) if nb]

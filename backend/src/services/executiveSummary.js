@@ -74,21 +74,20 @@ async function generateOccupancyData() {
  */
 async function generateViolationSummary() {
   try {
-    const collection = getCollection('violation_history');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const collection = await getCollection('violation_history');
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const todayViolations = await collection.find({ timestamp: { $gte: today } }).toArray();
-    const totalToday = todayViolations.length;
+    const recentViolations = await collection.find({ timestamp: { $gte: last24h } }).toArray();
+    const totalRecent = recentViolations.length;
 
-    const breakdown = todayViolations.reduce((acc, v) => {
+    const breakdown = recentViolations.reduce((acc, v) => {
       const type = v.violation_type || v.type || 'unknown';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
 
     // Group by zone/hotspot
-    const hotspotsMap = todayViolations.reduce((acc, v) => {
+    const hotspotsMap = recentViolations.reduce((acc, v) => {
       const key = v.zone || 'Unknown';
       const type = v.violation_type || v.type || 'unknown';
       if (!acc[key]) acc[key] = { zone: key, violations: 0, types: {} };
@@ -108,22 +107,21 @@ async function generateViolationSummary() {
         severity: h.violations > 5 ? 'high' : 'medium'
       }));
 
-    // Compare with yesterday
-    const dayBefore = new Date(today);
-    dayBefore.setDate(dayBefore.getDate() - 1);
-    const yesterdayViolations = await collection.find({ timestamp: { $gte: dayBefore, $lt: today } }).toArray();
-    const yesterdayCount = yesterdayViolations.length;
-    const changePercent = yesterdayCount > 0
-      ? parseFloat((((totalToday - yesterdayCount) / yesterdayCount) * 100).toFixed(1))
+    // Compare with previous 24h (24h-48h ago)
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const previousViolations = await collection.find({ timestamp: { $gte: fortyEightHoursAgo, $lt: last24h } }).toArray();
+    const previousCount = previousViolations.length;
+    const changePercent = previousCount > 0
+      ? parseFloat((((totalRecent - previousCount) / previousCount) * 100).toFixed(1))
       : 0;
     const trendDirection = changePercent > 0 ? 'up' : changePercent < 0 ? 'down' : 'stable';
 
     return {
       generated_at: new Date().toISOString(),
-      total_violations_today: totalToday,
+      total_violations_today: totalRecent, // Keep name for frontend compat
       breakdown,
       top_hotspots: hotspots,
-      trend: { direction: trendDirection, change_percent: changePercent, comparison: 'vs yesterday' },
+      trend: { direction: trendDirection, change_percent: changePercent, comparison: 'vs previous 24h' },
       resolution_rate: 0.85,
       avg_resolution_time_minutes: 20
     };

@@ -78,8 +78,8 @@ class LPREngine:
         if len(results) > 0 and len(results[0].boxes) > 0:
             box = results[0].boxes[0]
             det_conf = float(box.conf[0])
-            xyxy = box.xyxy[0].tolist()  # [xmin, ymin, xmax, ymax]
-            x1, y1, x2, y2 = map(int, xyxy)
+            xyxy = box.xyxyn[0].tolist()  # [xmin, ymin, xmax, ymax] normalized
+            x1, y1, x2, y2 = xyxy
             w, h = x2 - x1, y2 - y1
 
             # 2. Build plate_box in [x1, y1, w, h, conf, cls] format
