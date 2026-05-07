@@ -75,11 +75,6 @@ def get_detection_result(frame=None, camera_id="CCTV"):
     if _ensemble is not None and frame is not None:
         try:
             res = _ensemble.analyze_frame(frame, camera_id=camera_id)
-            # If real model found nothing, but we are in dev, use mock fallback
-            if res.get("vehicle_count") == 0 and os.getenv("NODE_ENV") != "production":
-                 mock = generate_mock_data()
-                 mock["source"] = "mock_fallback"
-                 return mock
             return res
         except Exception as e:
             print(f"[Traffic] Ensemble failed: {e}")

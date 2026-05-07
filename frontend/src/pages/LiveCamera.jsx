@@ -40,6 +40,20 @@ const LiveCamera = () => {
     { id: 'CAM-ZONE-C', name: 'Zone C', status: 'online', type: 'parking' },
     { id: 'CAM-EXIT', name: 'Exit Gate', status: 'online', type: 'parking' },
   ]);
+
+  // ── Persistent camera states via localStorage ──────────────────────────────
+  const CAMERA_STATE_KEY = 'smart_parking_camera_states';
+  const saveCameraStates = (cams) => {
+    const stateMap = {};
+    cams.forEach(c => { stateMap[c.id] = c.status; });
+    localStorage.setItem(CAMERA_STATE_KEY, JSON.stringify(stateMap));
+  };
+  const applySavedStates = (cams) => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CAMERA_STATE_KEY) || '{}');
+      return cams.map(c => saved[c.id] ? { ...c, status: saved[c.id] } : c);
+    } catch { return cams; }
+  };
   const [trafficData, setTrafficData] = useState(null);
   const [logs, setLogs] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState({ id: 'CAM-ENTRANCE', name: 'Entrance Gate', status: 'online', type: 'parking' });
@@ -193,7 +207,7 @@ const LiveCamera = () => {
           api.parking.getSlots(),
         ]);
         const allCams = statusRes.data || [];
-        setAllSlots(slotsRes.data || []);
+        setAllSlots(slotsRes?.data || []);
 
         // Split cameras by type
         const parkingCams = allCams.filter(c => c.type === 'parking');
@@ -204,15 +218,15 @@ const LiveCamera = () => {
           prev.forEach(mock => {
             if (!merged.find(m => m.id === mock.id)) merged.push(mock);
           });
-          return merged;
+          // Restore saved on/off states over whatever the DB says
+          return applySavedStates(merged);
         });
         setStreetCameras(prev => {
-          // Merge persistent street cameras with hardcoded ones (for fallback)
           const merged = [...streetCams.map(c => ({ ...c, streamUrl: c.stream_url }))];
           prev.forEach(hard => {
             if (!merged.find(m => m.id === hard.id)) merged.push(hard);
           });
-          return merged;
+          return applySavedStates(merged);
         });
 
         setLogs(logsRes.data?.logs || []);
@@ -232,25 +246,38 @@ const LiveCamera = () => {
   const toggleCameraStatus = async (id, currentStatus, type) => {
     const newStatus = currentStatus === 'online' ? 'offline' : 'online';
 
-    // 1. Optimistic update
+    // 1. Optimistic update in UI
+    let updatedCams = [];
     if (type === 'parking') {
-      setCameras(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
+      setCameras(prev => {
+        updatedCams = prev.map(c => c.id === id ? { ...c, status: newStatus } : c);
+        return updatedCams;
+      });
       if (selectedCamera?.id === id) {
         setSelectedCamera(prev => ({ ...prev, status: newStatus }));
       }
     } else {
-      setStreetCameras(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
+      setStreetCameras(prev => {
+        updatedCams = prev.map(c => c.id === id ? { ...c, status: newStatus } : c);
+        return updatedCams;
+      });
       if (selectedStreetCamera?.id === id) {
         setSelectedStreetCamera(prev => ({ ...prev, status: newStatus }));
       }
     }
 
+    // 2. Save to localStorage immediately (survives page navigation & restart)
+    saveCameraStates(
+      type === 'parking'
+        ? cameras.map(c => c.id === id ? { ...c, status: newStatus } : c)
+        : streetCameras.map(c => c.id === id ? { ...c, status: newStatus } : c)
+    );
+
     try {
-      // 2. Persistent update
+      // 3. Persistent update to backend DB
       await api.camera.updatePersistentStatus(id, newStatus);
     } catch (err) {
-      console.error('Failed to toggle camera status:', err);
-      // Optional: Handle rollback if persistence is critical
+      console.warn('Backend persist failed — localStorage state still saved:', err.message);
     }
   };
 

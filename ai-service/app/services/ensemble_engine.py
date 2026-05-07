@@ -144,20 +144,14 @@ class EnsembleEngine:
             return self._fallback_result()
 
     def _detect_by_mode(self, frame: np.ndarray, mode: str) -> list:
-        if mode == "daylight":
-            runners = [self.engine.detect_vehicles]
-            if self.engine.crowd_session:
-                runners.append(self.engine.detect_crowd)
-            return self._run_parallel(frame, runners)
-        elif mode == "night":
-            if self.engine.bdd100k_session:
-                return self.engine.detect_night(frame)
-            return self.engine.detect_vehicles(frame)
-        else:
-            runners = [self.engine.detect_vehicles]
-            if self.engine.bdd100k_session:
-                runners.append(self.engine.detect_night)
-            return self._run_parallel(frame, runners)
+        """
+        Run vehicle detection based on lighting mode.
+        NOTE: Crowd model is intentionally disabled to prevent class ID collision
+        (crowd model uses different class numbering than vehicle_model.onnx).
+        """
+        # Use vehicle model for all lighting modes
+        # The vehicle model already handles both day and night well enough
+        return self.engine.detect_vehicles(frame)
 
     def _run_parallel(self, frame: np.ndarray, runners: list) -> list:
         all_dets = []
