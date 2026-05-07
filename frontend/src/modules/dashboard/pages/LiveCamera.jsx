@@ -38,31 +38,71 @@ const VEHICLE_COLORS = {
 const LiveCamera = () => {
   const { t } = useTranslation();
 
-  const [cameras, setCameras] = useState([
-    { id: 'CAM-ENTRANCE', name: 'Entrance Gate', status: 'online', type: 'parking' },
-    { id: 'CAM-ZONE-A', name: 'Zone A', status: 'online', type: 'parking' },
-    { id: 'CAM-ZONE-B', name: 'Zone B', status: 'online', type: 'parking' },
-    { id: 'CAM-ZONE-C', name: 'Zone C', status: 'online', type: 'parking' },
-    { id: 'CAM-EXIT', name: 'Exit Gate', status: 'online', type: 'parking' },
-  ]);
-
   // ── Persistent camera states via localStorage ──────────────────────────────
   const CAMERA_STATE_KEY = 'smart_parking_camera_states';
+  
   const saveCameraStates = (cams) => {
-    const stateMap = {};
-    cams.forEach(c => { stateMap[c.id] = c.status; });
-    localStorage.setItem(CAMERA_STATE_KEY, JSON.stringify(stateMap));
+    try {
+      const existing = JSON.parse(localStorage.getItem(CAMERA_STATE_KEY) || '{}');
+      const newState = { ...existing };
+      cams.forEach(c => { newState[c.id] = c.status; });
+      localStorage.setItem(CAMERA_STATE_KEY, JSON.stringify(newState));
+    } catch (e) {
+      console.error('Failed to save camera states', e);
+    }
   };
+
+  const HISTORY_KEY = 'smart_parking_analysis_history';
+  const saveAnalysisHistory = (history) => {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50))); // limit to 50 items
+    } catch (e) {
+      console.error('Failed to save analysis history', e);
+    }
+  };
+
   const applySavedStates = (cams) => {
     try {
       const saved = JSON.parse(localStorage.getItem(CAMERA_STATE_KEY) || '{}');
       return cams.map(c => saved[c.id] ? { ...c, status: saved[c.id] } : c);
     } catch { return cams; }
   };
+
+  const [cameras, setCameras] = useState(() => {
+    const defaults = [
+      { id: 'CAM-ENTRANCE', name: 'Entrance Gate', status: 'online', type: 'parking' },
+      { id: 'CAM-ZONE-A', name: 'Zone A', status: 'online', type: 'parking' },
+      { id: 'CAM-ZONE-B', name: 'Zone B', status: 'online', type: 'parking' },
+      { id: 'CAM-ZONE-C', name: 'Zone C', status: 'online', type: 'parking' },
+      { id: 'CAM-EXIT', name: 'Exit Gate', status: 'online', type: 'parking' },
+    ];
+    return applySavedStates(defaults);
+  });
+
+  const [streetCameras, setStreetCameras] = useState(() => {
+    const defaults = [
+      { id: 'ATCS-001', name: 'ATCS Pusat - 001', status: 'online', area: 'Street' },
+      { id: 'ATCS-002', name: 'ATCS Pusat - 002', status: 'online', area: 'Street' },
+      { id: 'ATCS-003', name: 'ATCS Pusat - 003', status: 'online', area: 'Street' },
+      { id: 'ATCS-004', name: 'ATCS Pusat - 004', status: 'offline', area: 'Street' },
+    ];
+    return applySavedStates(defaults);
+  });
+
   const [trafficData, setTrafficData] = useState(null);
   const [logs, setLogs] = useState([]);
-  const [selectedCamera, setSelectedCamera] = useState({ id: 'CAM-ENTRANCE', name: 'Entrance Gate', status: 'online', type: 'parking' });
-  const [selectedStreetCamera, setSelectedStreetCamera] = useState({ id: 'ATCS-001', name: 'ATCS Pusat', status: 'online' });
+  const [selectedCamera, setSelectedCamera] = useState(() => {
+    const defaults = [
+      { id: 'CAM-ENTRANCE', name: 'Entrance Gate', status: 'online', type: 'parking' },
+    ];
+    return applySavedStates(defaults)[0];
+  });
+  const [selectedStreetCamera, setSelectedStreetCamera] = useState(() => {
+    const defaults = [
+      { id: 'ATCS-001', name: 'ATCS Pusat', status: 'online' },
+    ];
+    return applySavedStates(defaults)[0];
+  });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('parking'); // 'parking' or 'street'
   const [sourceMode, setSourceMode] = useState('live'); // 'live' or 'upload'
@@ -76,7 +116,11 @@ const LiveCamera = () => {
   const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle'|'uploading'|'processing'|'done'|'error'
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState(null);
-  const [analysisHistory, setAnalysisHistory] = useState([]);
+  const [analysisHistory, setAnalysisHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('smart_parking_analysis_history') || '[]');
+    } catch { return []; }
+  });
   // Keep isUploading as derived state for backward compatibility with existing UI
   const isUploading = uploadStatus === 'uploading' || uploadStatus === 'processing';
 
@@ -99,36 +143,7 @@ const LiveCamera = () => {
   const fileInputRef = useRef(null);
   const previewRef = useRef(null); // Combined ref for video/image upload preview
 
-  // Mock Street Cameras with real URL for the first one
-  const [streetCameras, setStreetCameras] = useState([
-    {
-      id: 'ATCS-001',
-      name: 'ATCS Pusat - 001',
-      status: 'online',
-      area: 'Street',
-      // streamUrl: 'https://atcsdishub.medan.go.id/stream/L2AHMADYANIPULAUPINANG/stream.m3u8'
-    },
-    {
-      id: 'ATCS-002',
-      name: 'ATCS Pusat - 002',
-      status: 'online',
-      area: 'Street',
-      // streamUrl: 'https://atcsdishub.medan.go.id/stream/L2SISINGAMANGARAJA/stream.m3u8'
-    },
-    {
-      id: 'ATCS-003',
-      name: 'ATCS Pusat - 003',
-      status: 'online',
-      area: 'Street',
-      // streamUrl: 'https://www.youtube.com/watch?v=465lj-w4DPs'
-    },
-    {
-      id: 'ATCS-004',
-      name: 'ATCS Pusat - 004',
-      status: 'offline',
-      area: 'Street'
-    },
-  ]);
+  // Canvas bounding box helper
 
   // ── Canvas bounding box helper ───────────────────────────────────────────────
   const drawBoxes = useCallback((boxes, isViolation = false) => {
@@ -205,7 +220,7 @@ const LiveCamera = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statusRes, logsRes, historyRes] = await Promise.all([
+        const [statusRes, logsRes, historyRes, slotsRes] = await Promise.all([
           api.camera.getStatus(),
           api.camera.getLogs(),
           api.ai.getHistory(),
@@ -218,27 +233,39 @@ const LiveCamera = () => {
         const parkingCams = allCams.filter(c => c.type === 'parking');
         const streetCams = allCams.filter(c => c.type === 'street');
 
-        setCameras(prev => {
-          const merged = [...parkingCams];
-          prev.forEach(mock => {
-            if (!merged.find(m => m.id === mock.id)) merged.push(mock);
-          });
-          // Restore saved on/off states over whatever the DB says
-          return applySavedStates(merged);
+        // Merge with initial mocks if DB doesn't have them
+        const mergedParking = [...parkingCams];
+        cameras.forEach(mock => {
+          if (!mergedParking.find(m => m.id === mock.id)) mergedParking.push(mock);
         });
-        setStreetCameras(prev => {
-          const merged = [...streetCams.map(c => ({ ...c, streamUrl: c.stream_url }))];
-          prev.forEach(hard => {
-            if (!merged.find(m => m.id === hard.id)) merged.push(hard);
-          });
-          return applySavedStates(merged);
+
+        const mergedStreet = [...streetCams.map(c => ({ ...c, streamUrl: c.stream_url }))];
+        streetCameras.forEach(hard => {
+          if (!mergedStreet.find(m => m.id === hard.id)) mergedStreet.push(hard);
         });
+
+        const finalParkingCams = applySavedStates(mergedParking);
+        const finalStreetCams = applySavedStates(mergedStreet);
+
+        setCameras(finalParkingCams);
+        setStreetCameras(finalStreetCams);
 
         setLogs(logsRes.data?.logs || []);
-        setAnalysisHistory(historyRes.data || []);
+        
+        // Merge DB history with local history, avoiding duplicates by ID
+        const dbHistory = historyRes.data || [];
+        setAnalysisHistory(prev => {
+          const combined = [...dbHistory];
+          prev.forEach(local => {
+            if (!combined.find(c => c.id === local.id)) combined.push(local);
+          });
+          const sorted = combined.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          saveAnalysisHistory(sorted);
+          return sorted;
+        });
 
-        if (parkingCams.length > 0) setSelectedCamera(parkingCams[0]);
-        if (streetCams.length > 0) setSelectedStreetCamera(streetCams[0]);
+        if (finalParkingCams.length > 0) setSelectedCamera(finalParkingCams[0]);
+        if (finalStreetCams.length > 0) setSelectedStreetCamera(finalStreetCams[0]);
       } catch (err) {
         console.error('Camera fetch error:', err);
       } finally {
@@ -250,36 +277,25 @@ const LiveCamera = () => {
 
   const toggleCameraStatus = async (id, currentStatus, type) => {
     const newStatus = currentStatus === 'online' ? 'offline' : 'online';
+    
+    // 1. Calculate updated list
+    const targetList = type === 'parking' ? cameras : streetCameras;
+    const updated = targetList.map(c => c.id === id ? { ...c, status: newStatus } : c);
 
-    // 1. Optimistic update in UI
-    let updatedCams = [];
+    // 2. Update UI states
     if (type === 'parking') {
-      setCameras(prev => {
-        updatedCams = prev.map(c => c.id === id ? { ...c, status: newStatus } : c);
-        return updatedCams;
-      });
-      if (selectedCamera?.id === id) {
-        setSelectedCamera(prev => ({ ...prev, status: newStatus }));
-      }
+      setCameras(updated);
+      if (selectedCamera?.id === id) setSelectedCamera({ ...selectedCamera, status: newStatus });
     } else {
-      setStreetCameras(prev => {
-        updatedCams = prev.map(c => c.id === id ? { ...c, status: newStatus } : c);
-        return updatedCams;
-      });
-      if (selectedStreetCamera?.id === id) {
-        setSelectedStreetCamera(prev => ({ ...prev, status: newStatus }));
-      }
+      setStreetCameras(updated);
+      if (selectedStreetCamera?.id === id) setSelectedStreetCamera({ ...selectedStreetCamera, status: newStatus });
     }
 
-    // 2. Save to localStorage immediately (survives page navigation & restart)
-    saveCameraStates(
-      type === 'parking'
-        ? cameras.map(c => c.id === id ? { ...c, status: newStatus } : c)
-        : streetCameras.map(c => c.id === id ? { ...c, status: newStatus } : c)
-    );
+    // 3. Save to localStorage (merging is handled inside saveCameraStates)
+    saveCameraStates(updated);
 
     try {
-      // 3. Persistent update to backend DB
+      // 4. Persistent update to backend DB
       await api.camera.updatePersistentStatus(id, newStatus);
     } catch (err) {
       console.warn('Backend persist failed — localStorage state still saved:', err.message);
@@ -508,9 +524,11 @@ const LiveCamera = () => {
               last_plate: plate,
               timestamp: exists?.timestamp || new Date().toISOString(),
             };
-            return exists
+            const sorted = exists
               ? prev.map(item => item.id === jobId ? newData : item)
               : [newData, ...prev];
+            saveAnalysisHistory(sorted);
+            return sorted;
           });
         }
 
@@ -614,11 +632,15 @@ const LiveCamera = () => {
         setUploadStatus('done');
         setUploadResult(result.data);
         setTrafficData(result.data);
-        setAnalysisHistory(prev => [{
-          id: Date.now(),
-          ...result.data,
-          timestamp: new Date().toISOString()
-        }, ...prev]);
+        setAnalysisHistory(prev => {
+          const updated = [{
+            id: Date.now(),
+            ...result.data,
+            timestamp: new Date().toISOString()
+          }, ...prev];
+          saveAnalysisHistory(updated);
+          return updated;
+        });
         setUploadProgress(100);
       } else {
         // Video analysis is asynchronous
