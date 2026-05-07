@@ -34,7 +34,7 @@ async def health_check():
         all_loaded = all([
             lpr_engine.model is not None,
             vehicle_engine.session is not None,
-            model_predictor.model is not None,
+            model_predictor.session is not None,
         ])
 
         return success_response({
@@ -43,7 +43,7 @@ async def health_check():
             "engines": {
                 "lpr": "loaded" if lpr_engine.model else "mock",
                 "vehicle": "loaded" if vehicle_engine.session else "mock",
-                "predictor": "loaded" if model_predictor.model else "mock",
+                "predictor": "loaded" if model_predictor.session else "mock",
             },
         })
 
