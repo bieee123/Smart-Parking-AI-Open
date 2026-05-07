@@ -19,6 +19,11 @@ async function request(endpoint, options = {}) {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.clear();
+      window.location.href = '/login';
+      return;
+    }
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new Error(error.detail?.message || error.message || `HTTP ${response.status}`);
   }
@@ -46,7 +51,7 @@ export const api = {
       request('/profile/password', { method: 'POST', body: JSON.stringify(data) }),
     getActivities: () => request('/profile/activities'),
     deleteAccount: () => request('/profile', { method: 'DELETE' }),
-    revokeSessions: () => request('/profile/revoke-sessions', { method: 'POST' }),
+    revokeSessions: (userId, type) => request('/profile/revoke-sessions', { method: 'POST', body: JSON.stringify({ targetUserId: userId, type }) }),
   },
 
   // Admin Management

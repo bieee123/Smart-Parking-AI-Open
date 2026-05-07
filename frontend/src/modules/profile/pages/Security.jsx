@@ -1,39 +1,35 @@
 import { useState, useEffect } from 'react';
-import { HiShieldCheck, HiLockClosed, HiFingerPrint, HiDeviceMobile, HiDotsVertical, HiKey, HiCheckCircle, HiExclamation, HiRefresh } from 'react-icons/hi';
 import { api } from '../../../services/api';
+import { useTranslation } from 'react-i18next';
+import { 
+  HiShieldCheck, HiExclamation, HiCheckCircle, HiLockClosed, 
+  HiKey, HiFingerPrint, HiDeviceMobile, HiRefresh 
+} from 'react-icons/hi';
 
 export default function Security() {
-  const formatTimeAgo = (date) => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    
-    if (seconds < 5) {
-      return "Just now";
-    }
+  const { t } = useTranslation();
 
-    if (seconds < 60) {
-      return seconds + " seconds ago";
-    }
+  const formatTimeAgo = (date) => {
+    if (!date) return "Unknown time";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "Invalid date";
+    const now = new Date();
+    const seconds = Math.floor((now - d) / 1000);
     
+    if (seconds < 60) return seconds < 5 ? "Just now" : `${seconds} seconds ago`;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) {
-      return minutes + (minutes === 1 ? " minute ago" : " minutes ago");
-    }
-    
+    if (minutes < 60) return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) {
-      return hours + (hours === 1 ? " hour ago" : " hours ago");
-    }
-    
+    if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
     const days = Math.floor(hours / 24);
-    if (days < 30) {
-      return days + (days === 1 ? " day ago" : " days ago");
-    }
-    
-    const months = Math.floor(days / 30);
-    return months + (months === 1 ? " month ago" : " months ago");
+    if (days < 30) return days + (days === 1 ? " day ago" : " days ago");
+    return Math.floor(days / 30) + " months ago";
   };
 
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState([]);
   const [fetchingLogs, setFetchingLogs] = useState(false);
@@ -63,11 +59,10 @@ export default function Security() {
     }
   };
 
-  const handleUpdatePassword = async (e) => {
+  const validatePasswordForm = (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-
+    
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setError('New passwords do not match');
       return;
@@ -78,7 +73,12 @@ export default function Security() {
       return;
     }
 
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleUpdatePassword = async () => {
     setLoading(true);
+    setIsPasswordModalOpen(false);
     try {
       const response = await api.profile.changePassword({
         current_password: passwordData.currentPassword,
@@ -99,13 +99,8 @@ export default function Security() {
   };
 
   const handleDeleteAccount = async () => {
-    const confirmed = window.confirm("Are you ABSOLUTELY sure? This action cannot be undone and all your data will be permanently deleted.");
-    if (!confirmed) return;
-
-    const secondConfirm = window.confirm("Final confirmation: Click OK to delete your account permanently.");
-    if (!secondConfirm) return;
-
     setLoading(true);
+    setIsDeleteModalOpen(false);
     try {
       const response = await api.profile.deleteAccount();
       if (response.success) {
@@ -139,14 +134,14 @@ export default function Security() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600">
-            <HiShieldCheck className="text-2xl" />
-          </div>
-          Security Settings
-        </h1>
-        <p className="text-gray-500 text-sm mt-2 ml-13">Manage your account protection, passwords, and authentication methods.</p>
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-primary-600/10 border border-primary-500/20 flex items-center justify-center shadow-sm">
+          <HiShieldCheck className="w-5 h-5 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('security.title')}</h1>
+          <p className="text-gray-500 text-sm">{t('security.desc')}</p>
+        </div>
       </div>
 
       {error && (
@@ -167,13 +162,13 @@ export default function Security() {
           <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50">
             <div className="flex items-center gap-3 mb-8">
               <HiLockClosed className="text-primary-500 text-xl" />
-              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Change Password</h2>
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('security.change_password')}</h2>
             </div>
 
-            <form onSubmit={handleUpdatePassword} className="space-y-6">
+            <form onSubmit={validatePasswordForm} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Current Password</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{t('security.current_password')}</label>
                   <input 
                     type="password" 
                     required
@@ -185,7 +180,7 @@ export default function Security() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">New Password</label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{t('security.new_password')}</label>
                     <input 
                       type="password" 
                       required
@@ -196,7 +191,7 @@ export default function Security() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Confirm New Password</label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{t('security.confirm_new_password')}</label>
                     <input 
                       type="password" 
                       required
@@ -212,12 +207,12 @@ export default function Security() {
               <div className="pt-4 border-t border-gray-50 flex justify-end">
                 <button 
                   type="submit"
-                  disabled={loading}
-                  className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-primary-600/20 transition-all active:scale-95 flex items-center gap-2"
-                >
-                  {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <HiKey />}
-                  Update Password
-                </button>
+                   disabled={loading}
+                   className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-primary-600/20 transition-all active:scale-95 flex items-center gap-2"
+                 >
+                   {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <HiKey />}
+                   {t('security.update_password')}
+                 </button>
               </div>
             </form>
           </section>
@@ -226,10 +221,10 @@ export default function Security() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <HiFingerPrint className="text-indigo-500 text-xl" />
-                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Two-Factor Authentication</h2>
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('security.two_factor')}</h2>
               </div>
               <div className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-black uppercase tracking-widest">
-                Recommended
+                {t('security.recommended')}
               </div>
             </div>
 
@@ -238,12 +233,12 @@ export default function Security() {
                 <HiDeviceMobile className="text-2xl" />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-bold text-slate-900 mb-1">Authenticator App</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-1">{t('security.auth_app')}</h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Protect your account with a secondary verification code generated by apps like Google Authenticator or Microsoft Authenticator.
+                  {t('security.auth_desc')}
                 </p>
                 <button className="mt-4 text-xs font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest transition-colors flex items-center gap-1 group">
-                  Setup Authenticator 
+                  {t('security.setup_auth')} 
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </button>
               </div>
@@ -256,7 +251,7 @@ export default function Security() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                Recent Activity
+                {t('security.recent_activity')}
               </h3>
               <button 
                 onClick={fetchLogs}
@@ -270,7 +265,7 @@ export default function Security() {
             <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
               {activities.length === 0 && !fetchingLogs && (
                 <div className="text-center py-8 opacity-40">
-                  <p className="text-[10px] font-bold uppercase tracking-widest">No activity found</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest">{t('security.no_activity')}</p>
                 </div>
               )}
               
@@ -294,21 +289,21 @@ export default function Security() {
               onClick={() => setIsLogsModalOpen(true)}
               className="w-full mt-4 py-2 text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-[0.2em] transition-colors border-t border-white/5 pt-4"
             >
-              View All Logs
+              {t('security.view_all_logs')}
             </button>
           </div>
 
           <div className="bg-red-50 border border-red-100 rounded-3xl p-6">
-            <h3 className="text-xs font-black text-red-600 uppercase tracking-widest mb-2">Danger Zone</h3>
+            <h3 className="text-xs font-black text-red-600 uppercase tracking-widest mb-2">{t('security.danger_zone')}</h3>
             <p className="text-[10px] text-red-500/80 leading-relaxed mb-4">
-              Once you delete your account, there is no going back. Please be certain.
+              {t('security.delete_desc')}
             </p>
             <button 
-              onClick={handleDeleteAccount}
+              onClick={() => setIsDeleteModalOpen(true)}
               disabled={loading}
               className="w-full py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-50"
             >
-              {loading ? 'Processing...' : 'Delete Account'}
+              {t('security.delete_account')}
             </button>
           </div>
         </div>
@@ -322,12 +317,72 @@ export default function Security() {
         parseDevice={parseDevice}
         formatTimeAgo={formatTimeAgo}
       />
+
+      {/* Change Password Confirmation Modal */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsPasswordModalOpen(false)} />
+          <div className="relative bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6">
+              <HiLockClosed />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 text-center mb-2">{t('security.confirm_update_title')}</h2>
+            <p className="text-sm text-gray-500 text-center leading-relaxed mb-8">
+              {t('security.confirm_update_desc')}
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="flex-1 py-3 bg-gray-50 text-gray-500 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all"
+              >
+                {t('common.cancel')}
+              </button>
+              <button 
+                onClick={handleUpdatePassword}
+                className="flex-1 py-3 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/20"
+              >
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsDeleteModalOpen(false)} />
+          <div className="relative bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl animate-in zoom-in-95 duration-300 border-t-4 border-red-600">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8">
+              <HiExclamation />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 text-center mb-4">{t('security.delete_confirm_title')}</h2>
+            <p className="text-sm text-gray-500 text-center leading-relaxed mb-8 font-medium">
+              {t('security.delete_confirm_desc')}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handleDeleteAccount}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-200"
+              >
+                {t('security.delete_permanently')}
+              </button>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+              >
+                {t('security.keep_account')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Sub-component for Logs Modal
 function LogsModal({ isOpen, onClose, activities, getActionLabel, parseDevice, formatTimeAgo }) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -335,8 +390,8 @@ function LogsModal({ isOpen, onClose, activities, getActionLabel, parseDevice, f
       <div className="relative bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[85vh]">
         <div className="px-10 py-8 border-b border-gray-100 flex justify-between items-center shrink-0">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Full Activity History</h3>
-            <p className="text-xs text-gray-500 mt-1">Detailed log of your recent account security events.</p>
+            <h3 className="text-xl font-bold text-gray-900">{t('security.full_history')}</h3>
+            <p className="text-xs text-gray-500 mt-1">{t('security.history_desc')}</p>
           </div>
         </div>
 
@@ -377,7 +432,7 @@ function LogsModal({ isOpen, onClose, activities, getActionLabel, parseDevice, f
             onClick={onClose}
             className="px-10 py-3 bg-white border border-gray-200 text-gray-600 hover:text-gray-900 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
           >
-            Close History
+            {t('security.close_history')}
           </button>
         </div>
       </div>

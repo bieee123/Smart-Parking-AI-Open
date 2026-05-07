@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { api } from '../services/api';
+import i18n from '../i18n';
 
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user';
@@ -14,6 +15,13 @@ export function useAuth() {
     }
   });
 
+  // Sync i18n language when user is loaded from localStorage
+  useEffect(() => {
+    if (user?.language) {
+      i18n.changeLanguage(user.language);
+    }
+  }, [user?.language]);
+
   const login = useCallback(async (usernameOrEmail, password) => {
     const response = await api.auth.login({ username: usernameOrEmail, password });
     // Backend returns: { success: true, data: { token, id, username, email, role } }
@@ -21,6 +29,12 @@ export function useAuth() {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(userData));
     setUser(userData);
+    
+    // Set language from user data
+    if (userData.language) {
+      i18n.changeLanguage(userData.language);
+    }
+    
     return userData;
   }, []);
 

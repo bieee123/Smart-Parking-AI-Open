@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProfileLayout from './layouts/ProfileLayout';
@@ -18,13 +19,14 @@ import Personalization from './modules/profile/pages/Personalization';
 import Sessions from './modules/profile/pages/Sessions';
 
 function NotFound() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
         <h1 className="text-6xl font-bold text-gray-300">404</h1>
-        <p className="text-gray-500 mt-4 text-lg">Page not found</p>
+        <p className="text-gray-500 mt-4 text-lg">{t('common.not_found')}</p>
         <a href="/dashboard" className="mt-4 inline-block text-primary-600 hover:underline">
-          Go to Dashboard
+          {t('common.go_to_dashboard')}
         </a>
       </div>
     </div>

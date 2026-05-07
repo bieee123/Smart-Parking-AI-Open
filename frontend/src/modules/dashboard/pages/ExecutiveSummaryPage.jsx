@@ -5,6 +5,8 @@ import {
   HiPresentationChartLine, HiOutlineExclamationCircle
 } from 'react-icons/hi';
 import { FaFilePdf, FaChartLine } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
+
 
 const API = 'http://localhost:8000/api';
 
@@ -27,6 +29,7 @@ function StatCard({ label, value, sub, color = 'blue' }) {
 }
 
 function OccupancyBar({ area }) {
+  const { t } = useTranslation();
   const pct = area.occupancy_percentage || 0;
   const color = pct >= 90 ? 'bg-red-500' : pct >= 75 ? 'bg-orange-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-green-500';
   return (
@@ -39,14 +42,15 @@ function OccupancyBar({ area }) {
         <div className={`h-1.5 rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase tracking-tight">
-        <span>{area.occupied_slots} occupied</span>
-        <span>{area.available_slots} free</span>
+        <span>{area.occupied_slots} {t('executive_summary.occupied')}</span>
+        <span>{area.available_slots} {t('executive_summary.free')}</span>
       </div>
     </div>
   );
 }
 
 function PredictionBar({ prediction }) {
+  const { t } = useTranslation();
   const pct = prediction.predicted_occupancy_percentage || 0;
   const color = pct >= 90 ? 'bg-red-500' : pct >= 75 ? 'bg-orange-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-green-500';
   return (
@@ -56,7 +60,7 @@ function PredictionBar({ prediction }) {
         <div className={`h-3 rounded-full transition-all duration-700 ${color} shadow-sm`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-xs font-black text-gray-700 w-10 shrink-0">{pct.toFixed(0)}%</span>
-      <span className="text-[10px] font-bold text-gray-400 w-10 shrink-0 uppercase">{(prediction.confidence * 100).toFixed(0)}% conf</span>
+      <span className="text-[10px] font-bold text-gray-400 w-10 shrink-0 uppercase">{(prediction.confidence * 100).toFixed(0)}% {t('executive_summary.conf')}</span>
     </div>
   );
 }
@@ -81,11 +85,12 @@ function RecommendationCard({ rec }) {
 }
 
 function HealthBadge({ status, score }) {
+  const { t } = useTranslation();
   const map = {
-    healthy: { color: 'text-green-600', bg: 'bg-green-500', ring: 'ring-green-100', label: 'Healthy' },
-    moderate: { color: 'text-yellow-600', bg: 'bg-yellow-500', ring: 'ring-yellow-100', label: 'Moderate' },
-    warning: { color: 'text-orange-600', bg: 'bg-orange-500', ring: 'ring-orange-100', label: 'Warning' },
-    critical: { color: 'text-red-600', bg: 'bg-red-500', ring: 'ring-red-100', label: 'Critical' },
+    healthy: { color: 'text-green-600', bg: 'bg-green-500', ring: 'ring-green-100', label: t('executive_summary.healthy') },
+    moderate: { color: 'text-yellow-600', bg: 'bg-yellow-500', ring: 'ring-yellow-100', label: t('executive_summary.moderate') },
+    warning: { color: 'text-orange-600', bg: 'bg-orange-500', ring: 'ring-orange-100', label: t('executive_summary.warning') },
+    critical: { color: 'text-red-600', bg: 'bg-red-500', ring: 'ring-red-100', label: t('executive_summary.critical') },
   };
   const cfg = map[status] || map.moderate;
   return (
@@ -128,6 +133,7 @@ function SkeletonBlock({ h = 'h-32', className = '' }) {
 }
 
 export default function ExecutiveSummaryPage() {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -183,15 +189,15 @@ export default function ExecutiveSummaryPage() {
                 <HiDocumentText className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Executive Summary</h1>
-                <p className="text-gray-500 text-sm">Stakeholder report — Smart Parking & Infrastructure</p>
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('executive_summary.title')}</h1>
+                <p className="text-gray-500 text-sm">{t('executive_summary.desc')}</p>
               </div>
             </div>
             {lastRefresh && (
               <div className="flex items-center gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
+                <span>{t('dashboard.last_updated')}: {lastRefresh.toLocaleTimeString()}</span>
                 <span className="text-gray-300">•</span>
-                <span>Auto-refresh in <span className="text-blue-600">{countdown}s</span></span>
+                <span>{t('executive_summary.auto_refresh')} <span className="text-blue-600">{countdown}s</span></span>
               </div>
             )}
           </div>
@@ -199,12 +205,12 @@ export default function ExecutiveSummaryPage() {
             <button onClick={fetchSummary} disabled={loading}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 rounded-lg text-xs font-bold text-gray-600 transition shadow-sm">
               <HiRefresh className={`text-lg ${loading ? 'animate-spin' : ''}`} />
-              REFRESH
+              {t('common.refresh').toUpperCase()}
             </button>
             <button onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-xs font-black text-white transition shadow-lg shadow-purple-600/20 uppercase tracking-widest active:scale-95">
               <HiDownload className="text-lg" />
-              Download Report
+              {t('executive_summary.report')}
             </button>
           </div>
         </div>
@@ -282,9 +288,9 @@ export default function ExecutiveSummaryPage() {
                   <HealthBadge status={data.system_status} score={data.health_score} />
                 </div>
                 <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
-                  <StatCard label="Total Slots" value={occ?.total_slots ?? '—'} color="slate" />
-                  <StatCard label="Occupied" value={occ?.occupied_slots ?? '—'} sub={`${occ?.occupancy_percentage ?? 0}%`} color="amber" />
-                  <StatCard label="Available" value={occ?.available_slots ?? '—'} color="green" />
+                  <StatCard label={t('dashboard.total_slots')} value={occ?.total_slots ?? '—'} color="slate" />
+                  <StatCard label={t('dashboard.occupied')} value={occ?.occupied_slots ?? '—'} sub={`${occ?.occupancy_percentage ?? 0}%`} color="amber" />
+                  <StatCard label={t('dashboard.available')} value={occ?.available_slots ?? '—'} color="green" />
                   <StatCard label="Violations (24h)" value={viol?.total_violations_today ?? '—'} color={viol?.trend?.direction === 'up' ? 'red' : 'green'} sub={viol?.trend ? `${viol.trend.change_percent}% ${viol.trend.comparison}` : ''} />
                 </div>
               </div>
@@ -304,7 +310,7 @@ export default function ExecutiveSummaryPage() {
                     <HiPresentationChartLine className="text-xl text-indigo-600" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">On-Street vs Off-Street Efficiency</h3>
+                    <h3 className="text-sm font-bold text-gray-900">{t('executive_summary.efficiency_title')}</h3>
                     <p className="text-[10px] text-gray-500">Resource utilization analysis</p>
                   </div>
                 </div>
@@ -332,7 +338,7 @@ export default function ExecutiveSummaryPage() {
                     <HiOutlineExclamationCircle className="text-xl text-red-600" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">Bottleneck Impact Analysis</h3>
+                    <h3 className="text-sm font-bold text-gray-900">{t('executive_summary.bottleneck_impact')}</h3>
                     <p className="text-[10px] text-gray-500">Correlation: Violations vs Flow Speed</p>
                   </div>
                 </div>
@@ -355,7 +361,7 @@ export default function ExecutiveSummaryPage() {
               {/* Occupancy */}
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                 <h2 className="text-xs font-black text-gray-700 mb-4 flex items-center gap-2 uppercase tracking-widest">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> Occupancy by Area
+                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> {t('executive_summary.occupancy_by_area')}
                 </h2>
                 {occ?.areas ? (
                   <div className="space-y-3">
@@ -384,13 +390,13 @@ export default function ExecutiveSummaryPage() {
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xs font-black text-gray-700 flex items-center gap-2 uppercase tracking-widest">
-                    <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> Demand Forecast (Next 6h)
+                    <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" /> {t('executive_summary.demand_forecast')}
                   </h2>
                   {pred && (
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${pred.bottleneck_risk_level === 'high' ? 'bg-red-100 text-red-800' :
                         pred.bottleneck_risk_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-green-100 text-green-800'
-                      }`}>{pred.bottleneck_risk_level} risk</span>
+                      }`}>{pred.bottleneck_risk_level} {t('executive_summary.risk')}</span>
                   )}
                 </div>
                 {pred?.predicted_next_6_hours ? (
@@ -419,7 +425,7 @@ export default function ExecutiveSummaryPage() {
             {/* Section 3: Violations */}
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
               <h2 className="text-xs font-black text-gray-700 mb-4 flex items-center gap-2 uppercase tracking-widest">
-                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Violation Analysis
+                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> {t('executive_summary.violation_analysis')}
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
@@ -451,7 +457,7 @@ export default function ExecutiveSummaryPage() {
             {/* Section 4: Recommendations */}
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
               <h2 className="text-xs font-black text-gray-700 mb-4 flex items-center gap-2 uppercase tracking-widest">
-                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Recommendations
+                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> {t('executive_summary.recommendations')}
                 <span className="ml-auto text-[10px] font-bold text-gray-400 uppercase tracking-widest">{recs?.length || 0} actions</span>
               </h2>
               {recs && recs.length > 0 ? (

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { HiUserAdd, HiPencil, HiTrash, HiSearch, HiBadgeCheck, HiBan, HiDotsHorizontal, HiExclamation, HiX, HiShieldCheck } from 'react-icons/hi';
+import { HiUserAdd, HiPencil, HiTrash, HiSearch, HiBadgeCheck, HiBan, HiDotsHorizontal, HiExclamation, HiX, HiShieldCheck, HiUsers } from 'react-icons/hi';
 import { api } from '../../../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function UserManagement() {
+  const { t } = useTranslation();
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -120,34 +123,39 @@ export default function UserManagement() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Control access, manage roles, and monitor system users.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center shadow-sm">
+            <HiUsers className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('user_management.title')}</h1>
+            <p className="text-gray-500 text-sm">{t('user_management.desc')}</p>
+          </div>
         </div>
         <button 
           onClick={() => handleOpenModal()}
           className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-primary-600/20 transition-all active:scale-95 flex items-center gap-2"
         >
           <HiUserAdd className="text-lg" />
-          Add New User
+          {t('user_management.add_user')}
         </button>
       </div>
 
       {/* Search & Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <div className="lg:col-span-3 relative group">
-          <HiSearch className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+        <div className="lg:col-span-3 relative group h-14">
+          <HiSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors text-lg" />
           <input 
             type="text" 
-            placeholder="Search users by name, email, or username..."
-            className="w-full bg-white border border-gray-100 rounded-2xl pl-12 pr-4 py-3 text-sm font-medium shadow-xl shadow-gray-200/40 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none"
+            placeholder={t('user_management.search_placeholder')}
+            className="w-full h-full bg-white border border-gray-100 rounded-2xl pl-14 pr-4 text-sm font-medium shadow-xl shadow-gray-200/40 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="bg-white border border-gray-100 rounded-2xl px-6 py-3 flex items-center justify-between shadow-xl shadow-gray-200/40">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Users</span>
+        <div className="h-14 bg-white border border-gray-100 rounded-2xl px-6 flex items-center justify-between shadow-xl shadow-gray-200/40">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('user_management.total_users')}</span>
           <span className="text-xl font-black text-gray-900">{filteredUsers.length}</span>
         </div>
       </div>
@@ -170,10 +178,10 @@ export default function UserManagement() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50">
-                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">User Identity</th>
-                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Access Role</th>
-                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Account Status</th>
-                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Actions</th>
+                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">{t('user_management.user_identity')}</th>
+                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">{t('user_management.access_role')}</th>
+                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">{t('user_management.account_status')}</th>
+                  <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -209,7 +217,7 @@ export default function UserManagement() {
                         }`}
                       >
                         {user.is_active ? <HiBadgeCheck className="text-lg" /> : <HiBan className="text-lg" />}
-                        <span className="text-xs font-bold">{user.is_active ? 'Active' : 'Deactivated'}</span>
+                        <span className="text-xs font-bold">{user.is_active ? t('common.active') : t('common.deactivated')}</span>
                       </button>
                     </td>
                     <td className="px-6 py-5">
@@ -248,7 +256,7 @@ export default function UserManagement() {
           <div className="relative bg-white w-full max-w-md max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
             <div className="px-8 py-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">{editingUser ? 'Edit User Registry' : 'Register New User'}</h3>
+                <h3 className="text-lg font-bold text-gray-900">{editingUser ? t('user_management.edit_registry') : t('user_management.register_new')}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">Please fill in all the required credentials.</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-xl transition-colors">
@@ -259,7 +267,7 @@ export default function UserManagement() {
             <form onSubmit={handleSaveUser} className="flex-1 overflow-y-auto p-8 space-y-5 custom-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Username</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('user_management.username')}</label>
                   <input 
                     type="text"
                     required
@@ -270,21 +278,21 @@ export default function UserManagement() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Account Role</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('user_management.access_role')}</label>
                   <select 
                     className="w-full bg-gray-50 border-gray-200 rounded-2xl px-4 py-3 text-sm font-medium focus:bg-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none appearance-none cursor-pointer"
                     value={formData.role}
                     onChange={(e) => setFormData({...formData, role: e.target.value})}
                   >
-                    <option value="admin">System Admin</option>
-                    <option value="operator">System Operator</option>
-                    <option value="viewer">Viewer Only</option>
+                    <option value="admin">{t('user_management.role_admin')}</option>
+                    <option value="operator">{t('user_management.role_operator')}</option>
+                    <option value="viewer">{t('user_management.role_viewer')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Identity Name</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('user_management.full_name')}</label>
                 <input 
                   type="text"
                   className="w-full bg-gray-50 border-gray-200 rounded-2xl px-4 py-3 text-sm font-medium focus:bg-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none"
@@ -294,7 +302,7 @@ export default function UserManagement() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('user_management.email')}</label>
                 <input 
                   type="email"
                   required
@@ -306,10 +314,10 @@ export default function UserManagement() {
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                  {editingUser ? 'Reset Password (Leave blank to keep current)' : 'Initial Password'}
+                  {editingUser ? t('user_management.password_reset_hint') : t('user_management.password_hint')}
                 </label>
                 <input 
-                  type="password"
+                  type="password" 
                   required={!editingUser}
                   className="w-full bg-gray-50 border-gray-200 rounded-2xl px-4 py-3 text-sm font-medium focus:bg-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none"
                   value={formData.password}
@@ -324,7 +332,7 @@ export default function UserManagement() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl text-sm font-bold transition-all active:scale-95"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button 
                   type="submit"
@@ -332,7 +340,7 @@ export default function UserManagement() {
                   className="flex-[2] px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-primary-600/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   {modalLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <HiShieldCheck className="text-lg" />}
-                  {editingUser ? 'Save Changes' : 'Create User'}
+                  {editingUser ? t('common.save') : t('user_management.add_user')}
                 </button>
               </div>
             </form>

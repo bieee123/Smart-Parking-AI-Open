@@ -20,6 +20,7 @@ export const getMyProfile = asyncHandler(async (req, res) => {
       bio: users.bio,
       avatar_url: users.avatar_url,
       assigned_zones: users.assigned_zones,
+      language: users.language,
       created_at: users.created_at,
       updated_at: users.updated_at
     })
@@ -38,7 +39,7 @@ export const getMyProfile = asyncHandler(async (req, res) => {
  * Update current user profile
  */
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { full_name, job_title, phone, bio, avatar_url } = req.body;
+  const { full_name, job_title, phone, bio, avatar_url, language } = req.body;
 
   const [updatedUser] = await db
     .update(users)
@@ -48,6 +49,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
       phone,
       bio,
       avatar_url,
+      language,
       updated_at: new Date()
     })
     .where(eq(users.id, req.user.id))
@@ -60,6 +62,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
       phone: users.phone,
       bio: users.bio,
       avatar_url: users.avatar_url,
+      language: users.language,
       updated_at: users.updated_at
     });
 
@@ -191,13 +194,39 @@ export const deleteAccount = asyncHandler(async (req, res) => {
  * Revoke all sessions by updating security stamp
  */
 export const revokeAllSessions = asyncHandler(async (req, res) => {
+  const { targetUserId, type } = req.body;
+  const isAdmin = req.user.role === 'admin';
+  
+  if (type === 'global' && isAdmin) {
+    // Global Nuke: Sign out everyone except Viewers
+    await db
+      .update(users)
+      .set({
+        security_stamp: sql`gen_random_uuid()`,
+        updated_at: new Date()
+      })
+      .where(sql`role != 'viewer'`);
+
+    return res.json({ 
+      success: true, 
+      message: 'Global Reset: All Admins and Operators have been signed out. Viewers remain active.' 
+    });
+  }
+
+  // Targeted or Self Revocation
+  const targetId = (isAdmin && targetUserId) ? targetUserId : req.user.id;
+
   await db
     .update(users)
     .set({
       security_stamp: sql`gen_random_uuid()`,
       updated_at: new Date()
     })
-    .where(eq(users.id, req.user.id));
+    .where(eq(users.id, targetId));
 
-  res.json({ success: true, message: 'All sessions revoked successfully. Please log in again on other devices.' });
+  const message = targetId === req.user.id 
+    ? 'All your sessions have been revoked. Please log in again.' 
+    : 'All sessions for the target user have been revoked successfully.';
+
+  res.json({ success: true, message });
 });

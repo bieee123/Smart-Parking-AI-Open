@@ -24,6 +24,7 @@ export const users = pgTable('users', {
   security_stamp: uuid('security_stamp').defaultRandom().notNull(),
   assigned_zones: jsonb('assigned_zones'), // array of zone IDs for operators
   role: varchar('role', { length: 20 }).notNull().default('user'), // admin, operator, viewer
+  language: varchar('language', { length: 10 }).notNull().default('en'), // en, id
   is_active: boolean('is_active').notNull().default(true),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),

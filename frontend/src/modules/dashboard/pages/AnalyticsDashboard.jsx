@@ -11,6 +11,8 @@ import BottleneckMap from '../components/analytics/BottleneckMap';
 import EfficiencyStats from '../components/analytics/EfficiencyStats';
 
 import { api } from '../../../services/api';
+import { useTranslation } from 'react-i18next';
+
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function SkeletonCard({ className = '', h = 'h-56' }) {
@@ -34,17 +36,18 @@ function SkeletonCard({ className = '', h = 'h-56' }) {
 
 // ── Error Banner ──────────────────────────────────────────────────────────────
 function ErrorBanner({ errors, onRetry }) {
+  const { t } = useTranslation();
   if (!errors || errors.length === 0) return null;
   return (
     <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
       <HiExclamation className="text-red-500 text-xl" />
       <div className="flex-1">
-        <p className="text-sm font-medium text-red-800">Some analytics data failed to load</p>
+        <p className="text-sm font-medium text-red-800">{t('analytics.failed_load')}</p>
         <ul className="text-xs text-red-600 mt-1 list-disc list-inside">
           {errors.map((e, i) => <li key={i}>{e}</li>)}
         </ul>
       </div>
-      <button onClick={onRetry} className="text-xs text-red-600 underline hover:text-red-800">Retry</button>
+      <button onClick={onRetry} className="text-xs text-red-600 underline hover:text-red-800">{t('common.retry')}</button>
     </div>
   );
 }
@@ -252,6 +255,7 @@ function buildEfficiencyMetrics(effData) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AnalyticsDashboard() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState([]);
   const [range, setRange] = useState('daily');
@@ -309,19 +313,24 @@ export default function AnalyticsDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-600 mt-1">Smart parking demand analysis and infrastructure insights</p>
-        <div className="mt-2 flex items-center gap-3 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-xs text-green-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-            Live data from API
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center shadow-sm">
+          <HiChartBar className="w-5 h-5 text-purple-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('analytics.title')}</h1>
+          <p className="text-gray-500 text-sm">{t('analytics.desc')}</p>
+          <div className="mt-2 flex items-center gap-3 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-[10px] font-bold uppercase tracking-wider text-green-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+              {t('analytics.live_data')}
+            </div>
+            {!loading && (
+              <button onClick={fetchAll} className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-full text-[10px] font-bold uppercase tracking-wider text-gray-600 transition">
+                ↻ {t('common.refresh')}
+              </button>
+            )}
           </div>
-          {!loading && (
-            <button onClick={fetchAll} className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-full text-xs text-gray-600 transition">
-              ↻ Refresh
-            </button>
-          )}
         </div>
       </div>
 
@@ -356,12 +365,12 @@ export default function AnalyticsDashboard() {
             {/* Occupancy Trends */}
             <div className="bg-white rounded-lg border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-700">Occupancy Trends</h3>
+                <h3 className="text-lg font-semibold text-gray-700">{t('analytics.occupancy_trends')}</h3>
                 <div className="flex bg-gray-100 rounded-lg p-0.5">
                   {['hourly', 'daily', 'weekly'].map(r => (
                     <button key={r} onClick={() => setRange(r)}
                       className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-colors ${range === r ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                      {r}
+                      {t(`analytics.${r}`)}
                     </button>
                   ))}
                 </div>
@@ -369,14 +378,14 @@ export default function AnalyticsDashboard() {
               {occupancyData.data.length > 0 ? (
                 <OccupancyChart data={occupancyData.data} labels={occupancyData.labels} title="" height={220} />
               ) : (
-                <div className="h-56 flex items-center justify-center text-sm text-gray-400">No trend data available</div>
+                <div className="h-56 flex items-center justify-center text-sm text-gray-400">{t('analytics.no_trend')}</div>
               )}
             </div>
 
             {/* Predicted Demand */}
             <div className="bg-white rounded-lg border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-700">Predicted Demand</h3>
+                <h3 className="text-lg font-semibold text-gray-700">{t('analytics.predicted_demand')}</h3>
                 <div className="flex bg-gray-100 rounded-lg p-0.5">
                   {[1, 2, 3, 4, 5, 6].map(h => (
                     <button key={h} onClick={() => setHorizon(h)}
@@ -389,9 +398,9 @@ export default function AnalyticsDashboard() {
               {predictionData.length > 0 ? (
                 <PredictedDemandChart data={predictionData} title="" />
               ) : (
-                <div className="h-56 flex items-center justify-center text-sm text-gray-400">No prediction data available</div>
+                <div className="h-56 flex items-center justify-center text-sm text-gray-400">{t('analytics.no_prediction')}</div>
               )}
-              <p className="text-xs text-gray-400 mt-2 text-center">AI-Driven Demand Forecast — Based on real-time traffic analysis</p>
+              <p className="text-xs text-gray-400 mt-2 text-center">{t('analytics.forecast_desc')}</p>
             </div>
           </div>
 
@@ -399,31 +408,31 @@ export default function AnalyticsDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg border border-gray-200 p-5">
               {correlData.length > 0 ? (
-                <CorrelationChart data={correlData} title="Traffic Volume vs Parking Occupancy" />
+                <CorrelationChart data={correlData} title={t('analytics.traffic_vs_occupancy')} />
               ) : (
-                <div className="h-32 flex items-center justify-center text-sm text-gray-400">No correlation data</div>
+                <div className="h-32 flex items-center justify-center text-sm text-gray-400">{t('analytics.no_correlation')}</div>
               )}
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-5">
               {heatmapData.length > 0 ? (
-                <ViolationHeatmap data={heatmapData} rows={5} cols={5} title="Violation Hotspots" />
+                <ViolationHeatmap data={heatmapData} rows={5} cols={5} title={t('analytics.violation_hotspots')} />
               ) : (
-                <div className="h-32 flex items-center justify-center text-sm text-gray-400">No violation data</div>
+                <div className="h-32 flex items-center justify-center text-sm text-gray-400">{t('analytics.no_violation')}</div>
               )}
             </div>
           </div>
 
           {/* Row 3: Bottleneck Map */}
           <div className="bg-white rounded-lg border border-gray-200 p-5">
-            <BottleneckMap bottlenecks={bottlenecks} title="Bottleneck Detection" />
+            <BottleneckMap bottlenecks={bottlenecks} title={t('analytics.bottleneck_detection')} />
           </div>
 
           {/* Row 4: Efficiency Stats */}
           <div className="bg-white rounded-lg border border-gray-200 p-5">
             {efficiencyMetrics.length > 0 ? (
-              <EfficiencyStats metrics={efficiencyMetrics} title="System Efficiency Summary" />
+              <EfficiencyStats metrics={efficiencyMetrics} title={t('analytics.efficiency_summary')} />
             ) : (
-              <div className="h-24 flex items-center justify-center text-sm text-gray-400">No efficiency data</div>
+              <div className="h-24 flex items-center justify-center text-sm text-gray-400">{t('analytics.no_efficiency')}</div>
             )}
           </div>
 

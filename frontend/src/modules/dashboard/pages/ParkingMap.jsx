@@ -8,8 +8,11 @@ import {
   HiMap, HiInbox, HiHashtag, HiCheckCircle, 
   HiMinusCircle, HiBookmark, HiBan, HiChartPie 
 } from 'react-icons/hi';
+import { useTranslation } from 'react-i18next';
 
 export default function ParkingMap() {
+  const { t } = useTranslation();
+
   // ── State ─────────────────────────────────────────────────
   const [slots, setSlots] = useState([]);
   const [zone, setZone] = useState('all');
@@ -133,26 +136,26 @@ export default function ParkingMap() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Page Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-primary-600/10 border border-primary-500/20 flex items-center justify-center shadow-sm">
             <HiMap className="w-5 h-5 text-primary-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Parking Map</h1>
-            <p className="text-gray-500 text-sm">Real-time view of all parking slots across zones</p>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('parking_map.title')}</h1>
+            <p className="text-gray-500 text-sm">{t('parking_map.desc')}</p>
           </div>
         </div>
       </div>
 
       {/* Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        <StatCard label="Total" value={stats.total} color="bg-gray-500" icon={<HiHashtag />} />
-        <StatCard label="Empty" value={stats.empty} color="bg-green-500" icon={<HiCheckCircle />} />
-        <StatCard label="Occupied" value={stats.occupied} color="bg-red-500" icon={<HiMinusCircle />} />
-        <StatCard label="Reserved" value={stats.reserved} color="bg-blue-500" icon={<HiBookmark />} />
-        <StatCard label="Offline" value={stats.offline} color="bg-yellow-500" icon={<HiBan />} />
-        <StatCard label="Occupancy" value={`${stats.occupancyRate}%`} color="bg-purple-500" icon={<HiChartPie />} />
+        <StatCard label={t('dashboard.total_slots')} value={stats.total} color="bg-gray-500" icon={<HiHashtag />} />
+        <StatCard label={t('dashboard.available')} value={stats.empty} color="bg-green-500" icon={<HiCheckCircle />} />
+        <StatCard label={t('dashboard.occupied')} value={stats.occupied} color="bg-red-500" icon={<HiMinusCircle />} />
+        <StatCard label={t('parking_map.reserved')} value={stats.reserved} color="bg-blue-500" icon={<HiBookmark />} />
+        <StatCard label={t('common.offline')} value={stats.offline} color="bg-yellow-500" icon={<HiBan />} />
+        <StatCard label={t('dashboard.occupancy_rate')} value={`${stats.occupancyRate}%`} color="bg-purple-500" icon={<HiChartPie />} />
       </div>
 
       {/* Filters */}
@@ -181,8 +184,8 @@ export default function ParkingMap() {
           <div className="flex justify-center mb-3">
             <HiInbox className="w-12 h-12 text-gray-200" />
           </div>
-          <p className="text-gray-600 font-medium">No parking slots found</p>
-          <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
+          <p className="text-gray-600 font-medium">{t('dashboard.no_data')}</p>
+          <p className="text-gray-400 text-sm mt-1">{t('live_camera.no_sessions')}</p>
         </div>
       )}
 
@@ -222,6 +225,7 @@ function StatCard({ label, value, color, icon }) {
 
 // ── Zone Section Sub-component ──────────────────────────────
 function ZoneSection({ zone, slots, onSlotClick }) {
+  const { t } = useTranslation();
   // Determine vehicle type hint from slots
   const vehicleHint = useMemo(() => {
     const types = [...new Set(slots.map((s) => s.vehicle_type).filter(Boolean))];
@@ -238,14 +242,14 @@ function ZoneSection({ zone, slots, onSlotClick }) {
             {zone}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Zone {zone}</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('parking_map.zone')} {zone}</h2>
             {vehicleHint && (
               <p className="text-xs text-gray-400 capitalize">{vehicleHint}</p>
             )}
           </div>
         </div>
         <span className="text-sm text-gray-500 font-medium">
-          {slots.length} slot{slots.length !== 1 ? 's' : ''}
+          {slots.length} {t('live_camera.slot')}{slots.length !== 1 ? 's' : ''}
         </span>
       </div>
 

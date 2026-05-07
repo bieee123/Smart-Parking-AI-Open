@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { HiUser, HiMail, HiBriefcase, HiPhone, HiSave, HiCheckCircle, HiExclamation } from 'react-icons/hi';
 import { api } from '../../../services/api';
+import { useTranslation } from 'react-i18next';
+import { HiExclamation, HiCheckCircle, HiUser, HiBriefcase, HiMail, HiPhone, HiSave } from 'react-icons/hi';
 
 export default function AccountInfo() {
+  const { t } = useTranslation();
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
@@ -101,13 +104,13 @@ export default function AccountInfo() {
               className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-primary-600/20 transition-all active:scale-95 flex items-center gap-2"
             >
               {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <HiSave className="text-lg" />}
-              Save Changes
+              {t('common.save')}
             </button>
           </div>
           
           <div className="mt-6">
             <h1 className="text-2xl font-bold text-gray-900">{user.full_name || user.username}</h1>
-            <p className="text-gray-500 text-sm">{user.job_title || 'No Job Title'} • {user.email}</p>
+            <p className="text-gray-500 text-sm">{user.job_title || t('common.no_data')} • {user.email}</p>
           </div>
         </div>
       </div>
@@ -117,18 +120,18 @@ export default function AccountInfo() {
         <div className="space-y-6">
           <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <HiUser className="text-primary-500 text-lg" /> Basic Information
+              <HiUser className="text-primary-500 text-lg" /> {t('account_info.basic_info')}
             </h2>
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">Full Name</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">{t('account_info.full_name')}</label>
                 <div className="relative group">
                   <span className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors"><HiUser /></span>
                   <input 
                     type="text" 
                     className="w-full bg-gray-50 border-gray-200 rounded-2xl pl-11 py-3 text-sm font-medium text-gray-900 focus:bg-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                    placeholder="Enter your full name"
+                    placeholder={t('account_info.full_name_placeholder')}
                     value={user.full_name || ''}
                     onChange={(e) => setUser({...user, full_name: e.target.value})}
                   />
@@ -136,13 +139,13 @@ export default function AccountInfo() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">Job Title</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">{t('account_info.job_title')}</label>
                 <div className="relative group">
                   <span className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors"><HiBriefcase /></span>
                   <input 
                     type="text" 
                     className="w-full bg-gray-50 border-gray-200 rounded-2xl pl-11 py-3 text-sm font-medium text-gray-900 focus:bg-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                    placeholder="e.g. Operations Manager"
+                    placeholder={t('account_info.job_title_placeholder')}
                     value={user.job_title || ''}
                     onChange={(e) => setUser({...user, job_title: e.target.value})}
                   />
@@ -153,12 +156,12 @@ export default function AccountInfo() {
 
           <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <HiMail className="text-indigo-500 text-lg" /> Contact Details
+              <HiMail className="text-indigo-500 text-lg" /> {t('account_info.contact_details')}
             </h2>
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">Email Address</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">{t('account_info.email')}</label>
                 <div className="relative">
                   <span className="absolute left-4 top-3.5 text-gray-400"><HiMail /></span>
                   <input 
@@ -171,13 +174,13 @@ export default function AccountInfo() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">Phone Number</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-2 ml-1">{t('account_info.phone')}</label>
                 <div className="relative group">
                   <span className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors"><HiPhone /></span>
                   <input 
                     type="text" 
                     className="w-full bg-gray-50 border-gray-200 rounded-2xl pl-11 py-3 text-sm font-medium text-gray-900 focus:bg-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                    placeholder="+62 812-..."
+                    placeholder={t('account_info.phone_placeholder')}
                     value={user.phone || ''}
                     onChange={(e) => setUser({...user, phone: e.target.value})}
                   />
@@ -190,31 +193,31 @@ export default function AccountInfo() {
         {/* Info Column */}
         <div className="space-y-6">
           <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200">
-            <h3 className="text-lg font-bold mb-2">Profile Completeness</h3>
+            <h3 className="text-lg font-bold mb-2">{t('account_info.completeness')}</h3>
             <div className="flex items-end gap-3 mb-4">
               <span className="text-5xl font-black">{user.full_name && user.phone && user.job_title ? '100%' : '85%'}</span>
-              <span className="text-indigo-200 text-sm mb-1">{user.full_name && user.phone && user.job_title ? 'Complete' : 'Excellent'}</span>
+              <span className="text-indigo-200 text-sm mb-1">{user.full_name && user.phone && user.job_title ? t('account_info.complete') : t('account_info.excellent')}</span>
             </div>
             <div className="w-full bg-white/20 rounded-full h-2 mb-6">
               <div className="bg-white h-full rounded-full transition-all duration-1000" style={{ width: user.full_name && user.phone && user.job_title ? '100%' : '85%' }} />
             </div>
             <p className="text-indigo-100 text-xs leading-relaxed">
               {user.full_name && user.phone && user.job_title 
-                ? "Your profile is fully complete! You're ready to manage the system at full capacity."
-                : "Your profile is almost complete. Fill in all details to reach 100% and build more trust with your team."}
+                ? t('account_info.complete_desc')
+                : t('account_info.incomplete_desc')}
             </p>
           </div>
 
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Account Stats</h2>
+            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">{t('account_info.stats')}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-500 font-bold uppercase mb-1">Role</p>
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1">{t('account_info.role')}</p>
                 <p className="text-lg font-bold text-gray-900 capitalize">{user.role}</p>
               </div>
               <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-500 font-bold uppercase mb-1">Status</p>
-                <p className="text-lg font-bold text-green-600">Active</p>
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1">{t('account_info.status')}</p>
+                <p className="text-lg font-bold text-green-600">{t('common.active')}</p>
               </div>
             </div>
           </div>

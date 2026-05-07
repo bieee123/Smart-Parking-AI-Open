@@ -3,46 +3,47 @@ import {
   HiViewGrid, HiChartBar, HiMap, HiVideoCamera, 
   HiLightningBolt, HiDocumentReport, HiLogout 
 } from 'react-icons/hi';
+import { useTranslation } from 'react-i18next';
 
 const navItems = [
   {
     path: '/dashboard',
-    label: 'Dashboard',
+    translationKey: 'common.dashboard',
     exact: true,
     icon: <HiViewGrid className="w-5 h-5" />,
     roles: ['admin', 'operator', 'viewer'],
   },
   {
     path: '/dashboard/analytics',
-    label: 'Analytics',
+    translationKey: 'common.analytics',
     exact: true,
     icon: <HiChartBar className="w-5 h-5" />,
     roles: ['admin', 'operator'],
   },
   {
     path: '/map-parking',
-    label: 'Parking Map',
+    translationKey: 'common.parking_map',
     exact: true,
     icon: <HiMap className="w-5 h-5" />,
     roles: ['admin', 'operator', 'viewer'],
   },
   {
     path: '/live-camera',
-    label: 'Live Camera',
+    translationKey: 'common.live_camera',
     exact: true,
     icon: <HiVideoCamera className="w-5 h-5" />,
     roles: ['admin', 'operator'],
   },
   {
     path: '/simulator',
-    label: 'Simulator',
+    translationKey: 'common.simulator',
     exact: true,
     icon: <HiLightningBolt className="w-5 h-5" />,
     roles: ['admin'],
   },
   {
     path: '/executive-summary',
-    label: 'Exec Summary',
+    translationKey: 'common.executive_summary',
     exact: true,
     icon: <HiDocumentReport className="w-5 h-5" />,
     roles: ['admin'],
@@ -59,6 +60,7 @@ function isActiveRoute(currentPath, targetPath, exact = false) {
 }
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -98,32 +100,30 @@ export default function Sidebar() {
         {filteredNavItems.map((item) => {
           // Use exact match to prevent double-highlight bugs
           const active = isActiveRoute(location.pathname, item.path, item.exact);
+
           return (
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.exact}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors group ${
+                active ? 'bg-primary-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
               {item.icon}
-              {item.label}
+              <span className="font-medium text-sm">{t(item.translationKey)}</span>
             </NavLink>
           );
         })}
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-4 border-t border-slate-700 shrink-0">
+      <div className="p-4 border-t border-slate-700 bg-slate-900/50">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:bg-red-600 hover:text-white rounded-xl transition-all active:scale-95 group font-bold"
         >
-          <HiLogout className="w-5 h-5" />
-          Logout
+          <HiLogout className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+          <span className="text-sm">{t('common.logout')}</span>
         </button>
       </div>
     </aside>

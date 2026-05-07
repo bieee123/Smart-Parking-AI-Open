@@ -5,6 +5,8 @@ import {
   HiClock, HiArrowRight, HiMinusCircle, HiPlay, HiDocumentReport
 } from 'react-icons/hi';
 import { FaPlay, FaRobot, FaMicroscope, FaParking, FaTrafficLight, FaCogs } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
+
 
 const API = 'http://localhost:8000/api';
 
@@ -35,12 +37,13 @@ function Badge({ level }) {
 }
 
 function ScoreBar({ score }) {
+  const { t } = useTranslation();
   const pct = Math.round((score || 0) * 100);
   const color = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-500';
   return (
     <div className="w-full">
       <div className="flex justify-between text-xs text-gray-500 mb-1">
-        <span>Efficiency Score</span>
+        <span>{t('analytics.utilization_score')}</span>
         <span className="font-bold text-gray-900">{pct}%</span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2">
@@ -51,6 +54,7 @@ function ScoreBar({ score }) {
 }
 
 function ResultPanel({ result, title }) {
+  const { t } = useTranslation();
   if (!result) return null;
   const analysis = result.analysis || {};
   return (
@@ -62,10 +66,10 @@ function ResultPanel({ result, title }) {
 
       <div className="grid grid-cols-2 gap-3">
         {[
-          ['Occupancy', analysis.occupancy_status || analysis.occupancy_severity],
-          ['Traffic', analysis.traffic_status],
-          ['Violations', analysis.violation_status],
-          ['Occupancy %', analysis.occupancy_percent != null ? `${analysis.occupancy_percent}%` : null],
+          [t('dashboard.occupied'), analysis.occupancy_status || analysis.occupancy_severity],
+          [t('live_camera.street_traffic'), analysis.traffic_status],
+          [t('executive_summary.violation_analysis'), analysis.violation_status],
+          [`${t('dashboard.occupied')} %`, analysis.occupancy_percent != null ? `${analysis.occupancy_percent}%` : null],
         ].filter(([, v]) => v != null).map(([k, v]) => (
           <div key={k} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
             <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-wider">{k}</p>
@@ -116,6 +120,7 @@ function SkeletonBlock({ h = 'h-32', className = '' }) {
 }
 
 function PolicyResultPanel({ result, loading }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm h-full">
@@ -135,22 +140,22 @@ function PolicyResultPanel({ result, loading }) {
   const diff = result.efficiency_change;
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-700">Policy Simulation Result</h3>
+      <h3 className="text-sm font-semibold text-gray-700">{t('simulator.policy_result')}</h3>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-          <p className="text-xs text-gray-500 mb-1">Before Occupancy</p>
+          <p className="text-xs text-gray-500 mb-1">{t('simulator.before')} {t('dashboard.occupied')}</p>
           <p className="text-lg font-bold text-gray-900">{result.current_state?.occupancy_percent ?? '—'}%</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-          <p className="text-xs text-gray-500 mb-1">After Occupancy</p>
+          <p className="text-xs text-gray-500 mb-1">{t('simulator.after')} {t('dashboard.occupied')}</p>
           <p className="text-lg font-bold text-blue-600">{result.simulated_state?.occupancy_percent ?? '—'}%</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-          <p className="text-xs text-gray-500 mb-1">Before Violations</p>
+          <p className="text-xs text-gray-500 mb-1">{t('simulator.before')} Violations</p>
           <p className="text-lg font-bold text-gray-900">{result.current_state?.violations ?? '—'}</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-          <p className="text-xs text-gray-500 mb-1">After Violations</p>
+          <p className="text-xs text-gray-500 mb-1">{t('simulator.after')} Violations</p>
           <p className="text-lg font-bold text-blue-600">{result.simulated_state?.violations ?? '—'}</p>
         </div>
       </div>
@@ -159,7 +164,7 @@ function PolicyResultPanel({ result, loading }) {
 
       {diff !== undefined && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-bold uppercase tracking-widest">Efficiency Change:</span>
+          <span className="text-xs text-gray-500 font-bold uppercase tracking-widest">{t('simulator.eff_change')}:</span>
           <span className={`text-sm font-black px-2 py-0.5 rounded ${diff >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
             {diff >= 0 ? '+' : ''}{(diff * 100).toFixed(1)}%
           </span>
@@ -169,7 +174,7 @@ function PolicyResultPanel({ result, loading }) {
       {result.actions && result.actions.length > 0 && (
         <div>
           <p className="text-[10px] font-black text-purple-600 mb-2 uppercase tracking-widest flex items-center gap-1">
-            <HiDocumentReport /> Policy Effects
+            <HiDocumentReport /> {t('simulator.policy_effects')}
           </p>
           {result.actions.map((a, i) => (
             <p key={i} className="text-xs font-bold text-gray-600 bg-gray-50 rounded p-2 mb-1 border border-gray-100">• {a}</p>
@@ -181,6 +186,7 @@ function PolicyResultPanel({ result, loading }) {
 }
 
 export default function SimulatorPage() {
+  const { t } = useTranslation();
   // Tab
   const [tab, setTab] = useState('single');
 
@@ -281,22 +287,22 @@ export default function SimulatorPage() {
               <HiLightningBolt className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Policy Simulator</h1>
-              <p className="text-gray-500 text-sm">Simulate parking policy changes and predict outcomes</p>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('simulator.title')}</h1>
+              <p className="text-gray-500 text-sm">{t('simulator.desc')}</p>
             </div>
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-[10px] font-bold text-blue-600 uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-            Rule-based engine — ML integration ready
+            {t('simulator.engine_desc')}
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-200/50 rounded-xl p-1 mb-8 w-fit border border-gray-200 shadow-sm">
           {[
-            ['single', 'Single Area', <FaPlay className="text-[10px]" />], 
-            ['multi', 'Multi-Area', <HiCollection className="text-lg" />], 
-            ['policy', 'Policy Test', <HiBeaker className="text-lg" />]
+            ['single', t('simulator.tab_single'), <FaPlay className="text-[10px]" />], 
+            ['multi', t('simulator.tab_multi'), <HiCollection className="text-lg" />], 
+            ['policy', t('simulator.tab_policy'), <HiBeaker className="text-lg" />]
           ].map(([v, l, icon]) => (
             <button key={v} onClick={() => setTab(v)}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === v ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-700'}`}>
@@ -310,9 +316,9 @@ export default function SimulatorPage() {
         {tab === 'single' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 shadow-sm">
-              <h2 className="text-sm font-bold text-gray-700">Area Parameters</h2>
+              <h2 className="text-sm font-bold text-gray-700">{t('simulator.area_params')}</h2>
               <div>
-                <label className={labelCls}>Area Name</label>
+                <label className={labelCls}>{t('simulator.area_name')}</label>
                 <input className={inputCls} value={single.area} onChange={e => setSingle(s => ({ ...s, area: e.target.value }))} />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -348,11 +354,11 @@ export default function SimulatorPage() {
                 ) : (
                   <HiPlay className="text-lg" />
                 )}
-                {singleLoading ? 'Running...' : 'Run Simulation'}
+                {singleLoading ? t('simulator.running') : t('simulator.run_sim')}
               </button>
             </div>
             <div>
-              <ResultPanel result={singleResult} loading={singleLoading} title="Simulation Result" />
+              <ResultPanel result={singleResult} loading={singleLoading} title={t('simulator.results')} />
               {!singleLoading && !singleResult && !singleError && (
                 <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 flex items-center justify-center h-full">
                   <div className="text-center">
@@ -370,9 +376,9 @@ export default function SimulatorPage() {
           <div className="space-y-6">
             <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-bold text-gray-700">Areas Configuration</h2>
+                <h2 className="text-sm font-bold text-gray-700">{t('simulator.multi_config')}</h2>
                 <button onClick={addArea} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-lg transition border border-gray-200 uppercase tracking-widest">
-                  + Add Area
+                  + {t('simulator.add_area')}
                 </button>
               </div>
               <div className="space-y-3">
@@ -402,7 +408,7 @@ export default function SimulatorPage() {
               <button onClick={runMulti} disabled={multiLoading}
                 className="mt-4 w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center gap-2">
                 {multiLoading ? <HiRefresh className="animate-spin text-lg" /> : <HiPlay className="text-lg" />}
-                {multiLoading ? 'Analyzing…' : 'Run Multi-Area Simulation'}
+                {multiLoading ? t('simulator.analyzing') : 'Run Multi-Area Simulation'}
               </button>
             </div>
 
@@ -463,9 +469,9 @@ export default function SimulatorPage() {
         {tab === 'policy' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 shadow-sm">
-              <h2 className="text-sm font-bold text-gray-700">Policy Configuration</h2>
+              <h2 className="text-sm font-bold text-gray-700">{t('simulator.policy_config')}</h2>
               <div>
-                <label className={labelCls}>Policy Type</label>
+                <label className={labelCls}>{t('simulator.policy_type')}</label>
                 <select className={inputCls} value={policy.type} onChange={e => { const pt = POLICY_TYPES.find(p => p.value === e.target.value); setPolicy(p => ({ ...p, type: e.target.value, paramVal: pt?.defaultVal || 20 })); }}>
                   {POLICY_TYPES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
@@ -497,7 +503,7 @@ export default function SimulatorPage() {
               <button onClick={runPolicy} disabled={policyLoading}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-purple-600/20 active:scale-95 flex items-center justify-center gap-2">
                 {policyLoading ? <HiRefresh className="animate-spin text-lg" /> : <HiBeaker className="text-lg" />}
-                {policyLoading ? 'Simulating…' : 'Test Policy'}
+                {policyLoading ? t('simulator.simulating') : t('simulator.test_policy')}
               </button>
             </div>
             <div>

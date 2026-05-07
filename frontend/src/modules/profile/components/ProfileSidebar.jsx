@@ -3,16 +3,18 @@ import {
   HiUser, HiUsers, HiShieldCheck, 
   HiAdjustments, HiClock, HiArrowLeft 
 } from 'react-icons/hi';
+import { useTranslation } from 'react-i18next';
 
 const MENU_ITEMS = [
-  { id: 'account', label: 'Account Info', icon: <HiUser className="w-5 h-5" />, path: '/profile/account' },
-  { id: 'users', label: 'User Management', icon: <HiUsers className="w-5 h-5" />, path: '/profile/users', adminOnly: true },
-  { id: 'security', label: 'Security & 2FA', icon: <HiShieldCheck className="w-5 h-5" />, path: '/profile/security' },
-  { id: 'personalization', label: 'Personalization', icon: <HiAdjustments className="w-5 h-5" />, path: '/profile/personalization' },
-  { id: 'sessions', label: 'Session History', icon: <HiClock className="w-5 h-5" />, path: '/profile/sessions', allowedRoles: ['admin', 'operator'] },
+  { id: 'account', translationKey: 'account_info.title', icon: <HiUser className="w-5 h-5" />, path: '/profile/account' },
+  { id: 'users', translationKey: 'user_management.title', icon: <HiUsers className="w-5 h-5" />, path: '/profile/users', adminOnly: true },
+  { id: 'security', translationKey: 'security.title', icon: <HiShieldCheck className="w-5 h-5" />, path: '/profile/security' },
+  { id: 'personalization', translationKey: 'personalization.title', icon: <HiAdjustments className="w-5 h-5" />, path: '/profile/personalization' },
+  { id: 'sessions', translationKey: 'sessions.title', icon: <HiClock className="w-5 h-5" />, path: '/profile/sessions', allowedRoles: ['admin', 'operator'] },
 ];
 
 export default function ProfileSidebar({ isAdmin = true }) {
+  const { t } = useTranslation();
   const location = useLocation();
 
   const user = (() => {
@@ -34,14 +36,14 @@ export default function ProfileSidebar({ isAdmin = true }) {
           <div className="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-600/20">
             <HiAdjustments className="text-white text-xl" />
           </div>
-          <span className="text-xl font-bold tracking-tight">Settings</span>
+          <span className="text-xl font-bold tracking-tight">{t('personalization.settings')}</span>
         </div>
         <Link 
           to="/dashboard" 
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest group"
         >
           <HiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-          Back to Dashboard
+          {t('common.back_to_dashboard')}
         </Link>
       </div>
 
@@ -64,7 +66,7 @@ export default function ProfileSidebar({ isAdmin = true }) {
               <span className={isActive ? 'text-white' : 'text-slate-400'}>
                 {item.icon}
               </span>
-              {item.label}
+              {t(item.translationKey)}
             </Link>
           );
         })}

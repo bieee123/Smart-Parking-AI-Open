@@ -27,6 +27,7 @@ export const register = asyncHandler(async (req, res) => {
       email,
       password_hash: passwordHash,
       role: role || 'user',
+      language: req.body.language || 'en'
     })
     .returning();
 
@@ -44,6 +45,7 @@ export const register = asyncHandler(async (req, res) => {
       username: newUser.username,
       email: newUser.email,
       role: newUser.role,
+      language: newUser.language,
       token,
     },
   });
@@ -123,6 +125,7 @@ export const login = asyncHandler(async (req, res) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      language: user.language,
     },
   });
 });

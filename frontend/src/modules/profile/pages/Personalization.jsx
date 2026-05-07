@@ -1,35 +1,83 @@
-import { useState } from 'react';
-import { HiColorSwatch, HiTranslate, HiBell, HiMoon, HiSun, HiDesktopComputer } from 'react-icons/hi';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { HiColorSwatch, HiTranslate, HiBell, HiMoon, HiSun, HiDesktopComputer, HiCheckCircle } from 'react-icons/hi';
+import useAuth from '../../../hooks/useAuth';
+import { api } from '../../../services/api';
 
 export default function Personalization() {
-  const [lang, setLang] = useState('en');
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const [lang, setLang] = useState(i18n.language || 'en');
   const [theme, setTheme] = useState('system');
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
     alerts: false
   });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+
+  // Sync state if i18n language changes elsewhere
+  useEffect(() => {
+    setLang(i18n.language);
+  }, [i18n.language]);
+
+  const handleLanguageChange = async (newLang) => {
+    setLoading(true);
+    setSuccess('');
+    try {
+      // 1. Update i18n locally
+      await i18n.changeLanguage(newLang);
+      setLang(newLang);
+
+      // 2. Save to DB
+      await api.profile.updateProfile({ language: newLang });
+
+      // 3. Update localStorage user data to keep it in sync
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      storedUser.language = newLang;
+      localStorage.setItem('user', JSON.stringify(storedUser));
+
+      setSuccess(t('common.success'));
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Failed to update language:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Personalization</h1>
-        <p className="text-sm text-gray-500 mt-1">Tailor the dashboard experience to your preferences and workflow.</p>
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-pink-600/10 border border-pink-500/20 flex items-center justify-center shadow-sm">
+          <HiColorSwatch className="w-5 h-5 text-pink-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('personalization.title')}</h1>
+          <p className="text-gray-500 text-sm">{t('personalization.desc')}</p>
+        </div>
       </div>
 
+      {success && (
+        <div className="mb-6 flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl animate-in slide-in-from-top-2">
+          <HiCheckCircle className="text-xl" />
+          <p className="text-sm font-bold">{success}</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Appearance */}
         <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
           <div className="flex items-center gap-3">
             <HiColorSwatch className="text-primary-500 text-xl" />
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Appearance</h2>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('personalization.theme')}</h2>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             {[
-              { id: 'light', label: 'Light', icon: <HiSun /> },
-              { id: 'dark', label: 'Dark', icon: <HiMoon /> },
-              { id: 'system', label: 'System', icon: <HiDesktopComputer /> },
+              { id: 'light', label: t('common.light'), icon: <HiSun /> },
+              { id: 'dark', label: t('common.dark'), icon: <HiMoon /> },
+              { id: 'system', label: t('common.system'), icon: <HiDesktopComputer /> },
             ].map((t) => (
               <button
                 key={t.id}
@@ -47,21 +95,21 @@ export default function Personalization() {
           </div>
         </section>
 
-        {/* Language */}
         <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
           <div className="flex items-center gap-3">
             <HiTranslate className="text-indigo-500 text-xl" />
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Language</h2>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('personalization.language')}</h2>
           </div>
 
           <div className="space-y-3">
             {[
-              { id: 'en', label: 'English (US)', desc: 'Standard international version' },
-              { id: 'id', label: 'Bahasa Indonesia', desc: 'Versi Bahasa Indonesia' },
+              { id: 'en', label: t('personalization.lang_en'), desc: t('personalization.lang_en_desc') },
+              { id: 'id', label: t('personalization.lang_id'), desc: t('personalization.lang_id_desc') },
             ].map((l) => (
               <button
                 key={l.id}
-                onClick={() => setLang(l.id)}
+                onClick={() => handleLanguageChange(l.id)}
+                disabled={loading}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
                   lang === l.id 
                     ? 'border-indigo-500 bg-indigo-50 text-indigo-900' 
@@ -82,7 +130,7 @@ export default function Personalization() {
         <section className="md:col-span-2 bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
           <div className="flex items-center gap-3">
             <HiBell className="text-amber-500 text-xl" />
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Notification Preferences</h2>
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('personalization.notifications')}</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -110,7 +158,7 @@ export default function Personalization() {
 
       <div className="mt-8 flex justify-end">
         <button className="px-10 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95">
-          Save Preferences
+          {t('common.save')}
         </button>
       </div>
     </div>

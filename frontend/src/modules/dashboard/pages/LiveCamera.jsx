@@ -7,6 +7,8 @@ import {
   HiRefresh, HiChevronRight, HiDownload, HiTrash, HiInformationCircle, HiX
 } from 'react-icons/hi';
 import { FaFileVideo, FaRobot, FaParking, FaTrafficLight } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
+
 
 // Vehicle class mapping — from vehicle_model.onnx metadata
 // {0:'car', 1:'threewheel', 2:'bus', 3:'truck', 4:'motorbike', 5:'van'}
@@ -33,6 +35,8 @@ const VEHICLE_COLORS = {
 };
 
 const LiveCamera = () => {
+  const { t } = useTranslation();
+
   const [cameras, setCameras] = useState([
     { id: 'CAM-ENTRANCE', name: 'Entrance Gate', status: 'online', type: 'parking' },
     { id: 'CAM-ZONE-A', name: 'Zone A', status: 'online', type: 'parking' },
@@ -687,7 +691,7 @@ const LiveCamera = () => {
         <div className="mb-4 bg-red-600 text-white px-4 py-3 rounded-lg flex items-center justify-between shadow-lg animate-in slide-in-from-top duration-300">
           <span className="flex items-center gap-2 text-sm font-medium">
             <span className="text-lg">⚠</span>
-            Illegal parking detected &mdash; {violationAlert.location}
+            {t('live_camera.illegal_parking')} &mdash; {violationAlert.location}
           </span>
           <button
             onClick={() => setViolationAlert(null)}
@@ -699,11 +703,14 @@ const LiveCamera = () => {
       )}
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-gray-900">Live Camera</h1>
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-red-600/10 border border-red-500/20 flex items-center justify-center shadow-sm">
+          <HiCamera className="w-5 h-5 text-red-600" />
         </div>
-        <p className="text-gray-500 mt-1">Monitor parking areas in real-time</p>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('live_camera.title')}</h1>
+          <p className="text-gray-500 text-sm">{t('live_camera.desc')}</p>
+        </div>
       </div>
 
       {/* Tab Switcher & Edit Mode Toggle */}
@@ -720,7 +727,7 @@ const LiveCamera = () => {
               }`}
           >
             <FaParking className={activeTab === 'parking' && sourceMode === 'live' ? 'text-primary-600' : 'text-gray-400'} />
-            Parking CCTV
+            {t('live_camera.parking_cctv')}
           </button>
           <button
             onClick={() => {
@@ -733,7 +740,7 @@ const LiveCamera = () => {
               }`}
           >
             <FaTrafficLight className={activeTab === 'street' && sourceMode === 'live' ? 'text-primary-600' : 'text-gray-400'} />
-            Street Traffic
+            {t('live_camera.street_traffic')}
           </button>
           <button
             onClick={() => setSourceMode('upload')}
@@ -743,13 +750,13 @@ const LiveCamera = () => {
               }`}
           >
             <HiChip className={sourceMode === 'upload' ? 'text-primary-600' : 'text-gray-400'} />
-            Video Analytics
+            {t('live_camera.video_analytics')}
           </button>
         </div>
 
         {sourceMode === 'live' && (
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-500">Edit Mode</span>
+            <span className="text-sm font-medium text-gray-500">{t('live_camera.edit_mode')}</span>
             <button
               onClick={() => setIsEditMode(!isEditMode)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isEditMode ? 'bg-primary-600' : 'bg-gray-300'
@@ -772,7 +779,7 @@ const LiveCamera = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Parking Cameras</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('live_camera.parking_cameras')}</h2>
               </div>
               <div className="divide-y divide-gray-100">
                 {cameras.map((camera) => (
@@ -814,7 +821,7 @@ const LiveCamera = () => {
             {/* Recent Events (Left) */}
             <div className="bg-white rounded-lg shadow mt-6">
               <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Parking Alerts</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('live_camera.parking_alerts')}</h2>
               </div>
               <div className="divide-y divide-gray-100 max-h-[160px] overflow-y-auto">
                 {logs.length > 0 ? (
@@ -831,7 +838,7 @@ const LiveCamera = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="p-4 text-center text-gray-400 text-sm">No recent events</div>
+                  <div className="p-4 text-center text-gray-400 text-sm">{t('live_camera.no_events')}</div>
                 )}
               </div>
             </div>
@@ -842,9 +849,9 @@ const LiveCamera = () => {
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {selectedCamera?.name || 'Select a camera'}
+                  {selectedCamera?.name || t('live_camera.select_camera')}
                 </h2>
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">LIVE STREAM</span>
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium uppercase">{t('live_camera.live_stream')}</span>
               </div>
 
               <div className="aspect-video bg-[#1a1d24] flex flex-col items-center justify-center relative group">
@@ -852,13 +859,13 @@ const LiveCamera = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
                 <div className="text-center px-10">
-                  <h3 className="text-lg font-bold text-gray-300">Camera Feed Placeholder</h3>
+                  <h3 className="text-lg font-bold text-gray-300">{t('live_camera.feed_placeholder')}</h3>
                   <p className="text-sm text-gray-500 mt-2 leading-relaxed max-w-md">
-                    Connect your IP camera or RTSP stream source here. AI vehicle detection is not yet implemented.
+                    {t('live_camera.feed_desc')}
                   </p>
                   {selectedCamera?.linked_slot && (
                     <p className="text-sm text-primary-500 mt-4 font-bold">
-                      Linked to Slot: <span className="underline">{selectedCamera.linked_slot}</span>
+                      {t('live_camera.linked_to')} <span className="underline">{selectedCamera.linked_slot}</span>
                     </p>
                   )}
                 </div>
@@ -866,16 +873,20 @@ const LiveCamera = () => {
             </div>
 
             {/* Events for [Camera Name] */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-4 border-b border-gray-200 bg-gray-50/50">
+            <div className="bg-white rounded-lg shadow h-[220px] flex flex-col">
+              <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex items-center justify-between shrink-0">
                 <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight">
-                  Events for {selectedCamera?.name || 'Camera'}
+                  {t('live_camera.events_for', { name: selectedCamera?.name || t('live_camera.camera') })}
                 </h2>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  {t('live_camera.live_feed')}
+                </div>
               </div>
-              <div className="divide-y divide-gray-100 max-h-[160px] min-h-[100px] overflow-y-auto">
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {cameraLogs.length > 0 ? (
                   cameraLogs.slice(0, 5).map((log) => (
-                    <div key={log.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div key={log.id} className="p-4 flex items-center justify-between border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-700">{log.event.replace(/_/g, ' ').toLowerCase()}</span>
                         {log.plate && <span className="text-xs font-mono text-gray-400">{log.plate}</span>}
@@ -885,7 +896,7 @@ const LiveCamera = () => {
                   ))
                 ) : (
                   <div className="p-8 text-center text-gray-400 text-sm">
-                    No logs recorded for this camera
+                    {t('live_camera.no_logs')}
                   </div>
                 )}
               </div>
@@ -900,7 +911,7 @@ const LiveCamera = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Street Cameras</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('live_camera.street_cameras')}</h2>
               </div>
               <div className="divide-y divide-gray-200">
                 {streetCameras.map((camera) => (
@@ -941,7 +952,7 @@ const LiveCamera = () => {
 
             <div className="bg-white rounded-lg shadow mt-6">
               <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Traffic Alerts</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('live_camera.traffic_alerts')}</h2>
               </div>
               <div className="divide-y divide-gray-100 max-h-[160px] overflow-y-auto">
                 {logs.filter(l => streetCameras.find(sc => sc.id === l.camera_id)).length > 0 ? (
@@ -958,7 +969,7 @@ const LiveCamera = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="p-4 text-center text-gray-400 text-sm">No recent traffic alerts</div>
+                  <div className="p-4 text-center text-gray-400 text-sm">{t('live_camera.no_traffic_alerts')}</div>
                 )}
               </div>
             </div>
@@ -967,8 +978,8 @@ const LiveCamera = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">{selectedStreetCamera?.name}</h2>
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">LIVE STREAM</span>
+                <h2 className="text-lg font-semibold text-gray-900">{selectedStreetCamera?.name || t('live_camera.select_street_camera')}</h2>
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium uppercase">{t('live_camera.live_stream')}</span>
               </div>
               <div className="aspect-video bg-gray-900 relative">
                 {selectedStreetCamera?.status === 'online' ? (
@@ -992,9 +1003,9 @@ const LiveCamera = () => {
                       <div className="w-20 h-20 bg-gray-700/30 rounded-full flex items-center justify-center mx-auto mb-6">
                         <HiCamera className="text-4xl text-gray-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-400 mb-2">Feed Unavailable</h3>
+                      <h3 className="text-xl font-bold text-gray-400 mb-2">{t('live_camera.feed_unavailable')}</h3>
                       <p className="text-gray-600 max-w-xs mx-auto">
-                        This camera feed is currently offline. {isEditMode ? 'Enable it to resume monitoring.' : 'Wait for maintenance or contact support.'}
+                        {isEditMode ? t('live_camera.enable_to_resume') : t('live_camera.contact_support')}
                       </p>
                     </div>
                   </div>
@@ -1002,16 +1013,16 @@ const LiveCamera = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow mt-6">
-              <div className="p-4 border-b border-gray-200 bg-gray-50/50">
+            <div className="bg-white rounded-lg shadow mt-6 h-[220px] flex flex-col">
+              <div className="p-4 border-b border-gray-200 bg-gray-50/50 shrink-0">
                 <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight">
-                  Events for {selectedStreetCamera?.name || 'Street Camera'}
+                  {t('live_camera.events_for', { name: selectedStreetCamera?.name || t('live_camera.street_camera') })}
                 </h2>
               </div>
-              <div className="divide-y divide-gray-100 max-h-[160px] min-h-[100px] overflow-y-auto">
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {streetCameraLogs.length > 0 ? (
                   streetCameraLogs.slice(0, 10).map((log) => (
-                    <div key={log.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div key={log.id} className="p-4 flex items-center justify-between border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-700">{log.event.replace(/_/g, ' ').toLowerCase()}</span>
                         {log.plate && <span className="text-xs font-mono text-gray-400">{log.plate}</span>}
@@ -1021,7 +1032,7 @@ const LiveCamera = () => {
                   ))
                 ) : (
                   <div className="p-8 text-center text-gray-400 text-sm">
-                    No logs recorded for this camera
+                    {t('live_camera.no_logs')}
                   </div>
                 )}
               </div>
@@ -1036,37 +1047,43 @@ const LiveCamera = () => {
           {/* Left Column: Upload & History */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <HiCloudUpload className="text-blue-600 text-xl" />
-                  Source File
-                </h2>
+              <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{t('live_camera.upload_video')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('live_camera.upload_desc')}</p>
+                </div>
               </div>
 
-              <div className="p-6">
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group bg-gray-50/30"
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="video/*,image/*"
-                    onChange={handleVideoUpload}
-                  />
-                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:rotate-12 transition-transform shadow-sm">
-                    <FaFileVideo className="text-3xl" />
+              <div className="p-8">
+                <div className="grid grid-cols-1 gap-10">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`relative group cursor-pointer border-3 border-dashed rounded-[2.5rem] p-12 transition-all flex flex-col items-center justify-center gap-6 ${
+                      sourceMode === 'upload' ? 'bg-primary-50/30 border-primary-200 hover:border-primary-400 hover:bg-primary-50' : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="video/*,image/*"
+                      onChange={handleVideoUpload}
+                    />
+                    <div className="w-24 h-24 bg-white rounded-3xl shadow-xl shadow-primary-500/10 flex items-center justify-center text-primary-600 transition-transform group-hover:scale-110">
+                      <HiCloudUpload className="text-5xl" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-lg font-bold text-gray-900">{t('live_camera.drop_file')}</h3>
+                      <p className="text-sm text-gray-400 mt-2 font-medium">{t('live_camera.drop_desc')}</p>
+                    </div>
                   </div>
-                  <p className="text-sm font-bold text-gray-900">Upload Video or Image</p>
-                  <p className="text-[11px] text-gray-400 mt-2 font-medium">Drag & drop files to start AI analysis</p>
                 </div>
 
                 {isUploading ? (
                   <div className="mt-8 space-y-3">
-                    <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider">
-                      <span className="text-blue-600 animate-pulse">AI Processing...</span>
-                      <span className="text-gray-900">{uploadProgress}%</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">{t('live_camera.processing')}</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden p-0.5 border border-gray-200/50">
                       <div
@@ -1081,19 +1098,19 @@ const LiveCamera = () => {
                       <HiCheckCircle className="text-xl" />
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold text-green-800 uppercase tracking-wider">Analysis Complete</p>
-                      <p className="text-[10px] text-green-600 font-medium">AI successfully processed the file</p>
+                      <p className="text-[11px] font-bold text-green-800 uppercase tracking-wider">{t('live_camera.analysis_complete')}</p>
+                      <p className="text-[10px] text-green-600 font-medium">{t('live_camera.analysis_success')}</p>
                     </div>
                   </div>
                 ) : null}
               </div>
             </div>
 
-            {/* Analysis History (Placeholder like Recent Events) */}
+            {/* Analysis History */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mt-6 overflow-hidden">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Analysis History</h2>
-                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">RECENT</span>
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('live_camera.history')}</h2>
+                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{analysisHistory.length} {t('live_camera.entries')}</span>
               </div>
               <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
                 {analysisHistory.length > 0 ? (
@@ -1101,7 +1118,7 @@ const LiveCamera = () => {
                     <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start">
                         <p className="text-xs font-bold text-gray-900">
-                          {item.id.toString().includes('VIDEO') ? 'Video Analysis' : 'Image Analysis'}
+                          {item.id.toString().includes('VIDEO') ? t('live_camera.video_analysis') : t('live_camera.image_analysis')}
                         </p>
                         <span className="text-[10px] text-gray-400 font-mono">
                           {new Date(item.timestamp).toLocaleTimeString()}
@@ -1109,7 +1126,7 @@ const LiveCamera = () => {
                       </div>
                       <div className="mt-2 flex gap-2">
                         <span className="px-2 py-0.5 bg-blue-50 border border-blue-100 rounded text-[9px] font-bold text-blue-600 uppercase">
-                          {item.vehicle_count || 0} Vehicles
+                          {item.vehicle_count || 0} {t('live_camera.vehicles')}
                         </span>
                         <span className={`px-2 py-0.5 border rounded text-[9px] font-bold uppercase ${item.density_level === 'high' ? 'bg-red-50 border-red-100 text-red-600' :
                           item.density_level === 'medium' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' :
@@ -1131,7 +1148,7 @@ const LiveCamera = () => {
                   ))
                 ) : (
                   <div className="p-4 text-center py-12">
-                    <p className="text-xs text-gray-400 italic">No previous sessions found</p>
+                    <p className="text-xs text-gray-400 italic">{t('live_camera.no_sessions')}</p>
                   </div>
                 )}
               </div>
@@ -1142,17 +1159,17 @@ const LiveCamera = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 h-full overflow-hidden flex flex-col">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">AI Intelligence Review</h2>
+                <h2 className="text-lg font-bold text-gray-900">{t('live_camera.analysis_result')}</h2>
                 {trafficData && (
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-mono text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                      SOURCE: {trafficData?.source?.toUpperCase() || 'UNKNOWN'}
+                      {t('live_camera.source')}: {trafficData?.source?.toUpperCase() || 'UNKNOWN'}
                     </span>
                     <div className="flex gap-2">
-                      <button onClick={handleDownload} className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors" title="Download Results">
+                      <button onClick={handleDownload} className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors" title={t('live_camera.download')}>
                         <HiDownload className="text-xl" />
                       </button>
-                      <button onClick={handleDelete} className="p-2 hover:bg-red-50 text-red-400 rounded-lg transition-colors" title="Clear Result">
+                      <button onClick={handleDelete} className="p-2 hover:bg-red-50 text-red-400 rounded-lg transition-colors" title={t('live_camera.clear')}>
                         <HiTrash className="text-xl" />
                       </button>
                     </div>
@@ -1199,24 +1216,24 @@ const LiveCamera = () => {
                       <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/20 animate-in fade-in zoom-in duration-500 shadow-2xl z-30">
                         <div className="flex items-center gap-6">
                           <div className="flex flex-col">
-                            <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-1">Vehicles</p>
+                            <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-1">{t('live_camera.vehicles')}</p>
                             <p className="text-2xl font-black text-white leading-none">{trafficData?.vehicle_count || 0}</p>
                           </div>
                           <div className="w-px h-10 bg-white/10" />
                           <div className="flex flex-col">
-                             <p className="text-[10px] text-green-400 font-black uppercase tracking-widest mb-1">Plate</p>
+                             <p className="text-[10px] text-green-400 font-black uppercase tracking-widest mb-1">{t('dashboard.license_plate')}</p>
                              <p className="text-xl font-mono font-bold text-white leading-none">
                                {trafficData?.plate_number || trafficData?.last_plate || 'N/A'}
                              </p>
                              {trafficData?.plate_confidence > 0 && (
                                <p className="text-[9px] text-green-400/70 mt-0.5">
-                                 {Math.round(trafficData.plate_confidence * 100)}% conf
+                                 {Math.round(trafficData.plate_confidence * 100)}% {t('live_camera.conf')}
                                </p>
                              )}
                           </div>
                           <div className="w-px h-10 bg-white/10" />
                           <div className="flex flex-col">
-                            <p className="text-[10px] text-yellow-400 font-black uppercase tracking-widest mb-1">Density</p>
+                            <p className="text-[10px] text-yellow-400 font-black uppercase tracking-widest mb-1">{t('live_camera.density')}</p>
                             <p className="text-xl font-black text-white leading-none uppercase">{trafficData?.density_level || 'low'}</p>
                           </div>
                         </div>
@@ -1227,15 +1244,15 @@ const LiveCamera = () => {
                     {uploadStatus === 'done' && trafficData && (
                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex items-center gap-4 z-30 animate-in slide-in-from-bottom-4 duration-500">
                         <div className="flex flex-col">
-                          <label className="text-[10px] text-gray-400 font-bold uppercase mb-1">Assign to Slot</label>
+                          <label className="text-[10px] text-gray-400 font-bold uppercase mb-1">{t('live_camera.assign_to_slot')}</label>
                           <select 
                             value={syncingSlot}
                             onChange={(e) => setSyncingSlot(e.target.value)}
                             className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:ring-1 focus:ring-blue-500"
                           >
-                            <option value="">Select a slot...</option>
+                            <option value="">{t('live_camera.select_slot')}</option>
                             {allSlots.filter(s => !s.is_occupied).map(slot => (
-                              <option key={slot.id} value={slot.id}>Slot {slot.slot_number} ({slot.zone})</option>
+                              <option key={slot.id} value={slot.id}>{t('live_camera.slot')} {slot.slot_number} ({slot.zone})</option>
                             ))}
                           </select>
                         </div>

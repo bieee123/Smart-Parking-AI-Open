@@ -4,11 +4,15 @@ import { api } from '../../../services/api';
 import { formatDate } from '../../../utils/helpers';
 import { 
   HiHashtag, HiMinusCircle, HiCheckCircle, HiChartPie, 
-  HiVideoCamera, HiMap, HiExclamation, HiChevronRight 
+  HiVideoCamera, HiMap, HiExclamation, HiChevronRight, HiViewGrid
 } from 'react-icons/hi';
 import { FaParking, FaCar } from 'react-icons/fa';
 
+import { useTranslation } from 'react-i18next';
+
 export default function Dashboard() {
+  const { t } = useTranslation();
+
   const [summary, setSummary] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,27 +107,32 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Real-time parking monitoring overview</p>
-        {summary.last_update && (
-          <p className="text-xs text-gray-400 mt-1">
-            Last updated: {formatDate(summary.last_update)}
-          </p>
-        )}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center shadow-sm">
+          <HiViewGrid className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('common.dashboard')}</h1>
+          <p className="text-gray-500 text-sm">{t('dashboard.desc')}</p>
+          {summary.last_update && (
+            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-bold">
+              {t('dashboard.last_updated')}: {formatDate(summary.last_update)}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Slots" value={summary.total_slots} icon={<HiHashtag />} color="bg-blue-500" />
-        <StatCard title="Occupied" value={summary.occupied} icon={<HiMinusCircle />} color="bg-red-500" />
-        <StatCard title="Available" value={summary.available} icon={<HiCheckCircle />} color="bg-green-500" />
-        <StatCard title="Occupancy Rate" value={`${occupancyRate}%`} icon={<HiChartPie />} color="bg-purple-500" />
+        <StatCard title={t('dashboard.total_slots')} value={summary.total_slots} icon={<HiHashtag />} color="bg-blue-500" />
+        <StatCard title={t('dashboard.occupied')} value={summary.occupied} icon={<HiMinusCircle />} color="bg-red-500" />
+        <StatCard title={t('dashboard.available')} value={summary.available} icon={<HiCheckCircle />} color="bg-green-500" />
+        <StatCard title={t('dashboard.occupancy_rate')} value={`${occupancyRate}%`} icon={<HiChartPie />} color="bg-purple-500" />
       </div>
 
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.quick_actions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link
             to="/live-camera"
@@ -133,8 +142,8 @@ export default function Dashboard() {
               <HiVideoCamera />
             </span>
             <div>
-              <h3 className="font-semibold text-gray-900">Live Camera</h3>
-              <p className="text-sm text-gray-600">View real-time camera feeds</p>
+              <h3 className="font-semibold text-gray-900">{t('common.live_camera')}</h3>
+              <p className="text-sm text-gray-600">{t('dashboard.view_cameras')}</p>
             </div>
           </Link>
           <Link
@@ -145,8 +154,8 @@ export default function Dashboard() {
               <HiMap />
             </span>
             <div>
-              <h3 className="font-semibold text-gray-900">Parking Map</h3>
-              <p className="text-sm text-gray-600">View parking layout and availability</p>
+              <h3 className="font-semibold text-gray-900">{t('common.parking_map')}</h3>
+              <p className="text-sm text-gray-600">{t('dashboard.view_map')}</p>
             </div>
           </Link>
         </div>
@@ -154,20 +163,20 @@ export default function Dashboard() {
 
       {/* Recent Activity */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.recent_activity')}</h2>
         {recentLogs.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <p>No recent activity to display</p>
+            <p>{t('dashboard.no_activity')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-gray-500 uppercase bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg">Event</th>
-                  <th className="px-4 py-3">Slot</th>
-                  <th className="px-4 py-3">License Plate</th>
-                  <th className="px-4 py-3 rounded-r-lg">Time</th>
+                  <th className="px-4 py-3 rounded-l-lg">{t('dashboard.event')}</th>
+                  <th className="px-4 py-3">{t('dashboard.slot')}</th>
+                  <th className="px-4 py-3">{t('dashboard.license_plate')}</th>
+                  <th className="px-4 py-3 rounded-r-lg">{t('dashboard.time')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -208,19 +217,20 @@ export default function Dashboard() {
 
 /* ── Fallback when backend is down ─────────────────────────── */
 function PlaceholderDashboard({ recentLogs }) {
+  const { t } = useTranslation();
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Slots" value="—" icon={<HiHashtag />} color="bg-blue-500" />
-        <StatCard title="Occupied" value="—" icon={<HiMinusCircle />} color="bg-red-500" />
-        <StatCard title="Available" value="—" icon={<HiCheckCircle />} color="bg-green-500" />
-        <StatCard title="Occupancy Rate" value="—" icon={<HiChartPie />} color="bg-purple-500" />
+        <StatCard title={t('dashboard.total_slots')} value="—" icon={<HiHashtag />} color="bg-blue-500" />
+        <StatCard title={t('dashboard.occupied')} value="—" icon={<HiMinusCircle />} color="bg-red-500" />
+        <StatCard title={t('dashboard.available')} value="—" icon={<HiCheckCircle />} color="bg-green-500" />
+        <StatCard title={t('dashboard.occupancy_rate')} value="—" icon={<HiChartPie />} color="bg-purple-500" />
       </div>
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.recent_activity')}</h2>
         {recentLogs.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <p>No data available</p>
+            <p>{t('dashboard.no_data')}</p>
           </div>
         ) : null}
       </div>
