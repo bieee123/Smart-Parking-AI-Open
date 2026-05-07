@@ -2,7 +2,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { getSlotEfficiency } from '../services/slotEfficiency.js';
 import { generateExecutiveSummary as getSummary } from '../services/executiveSummary.js';
 import { db } from '../db/postgres.js';
-import { parkingSlots, parkingLogs } from '../db/drizzle/schema.js';
+import { parkingSlots, parkingLogs, analysisHistory } from '../db/drizzle/schema.js';
 import { getCollection } from '../db/mongo.js';
 import { sql, desc, gte, lte, and, or, isNull, eq } from 'drizzle-orm';
 import { getCache, setCache } from '../db/redis.js';
@@ -92,47 +92,51 @@ export const getViolationHotspots = asyncHandler(async (req, res) => {
 
   try {
     const collection = await getCollection('violation_history');
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    // Get last 24h violations
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentViolations = await collection.find({ timestamp: { $gte: yesterday } }).toArray();
+    // 1. Fetch AI detections from MongoDB
+    const aiViolations = await collection.find({ timestamp: { $gte: last24h } }).toArray() || [];
     
-    // Group by camera_id
-    const grouped = {};
-    recentViolations.forEach(v => {
-      const loc = v.camera_id || v.zone || 'Unknown Area';
-      if (!grouped[loc]) grouped[loc] = 0;
-      grouped[loc]++;
-    });
+    // 2. Calculate Overstay Violations from PostgreSQL
+    // We consider parking > 120 minutes without exit as a violation
+    const overstays = await db.select({
+      zone: parkingSlots.zone,
+      count: sql`count(*)`.mapWith(Number)
+    })
+    .from(parkingLogs)
+    .innerJoin(parkingSlots, eq(parkingLogs.slot_id, parkingSlots.id))
+    .where(and(
+      gte(parkingLogs.entry_time, last24h),
+      isNull(parkingLogs.exit_time),
+      sql`EXTRACT(EPOCH FROM (NOW() - ${parkingLogs.entry_time})) / 60 > 120`
+    ))
+    .groupBy(parkingSlots.zone);
 
-    const maxViolations = Math.max(1, ...Object.values(grouped));
+    // 3. Merge sources
+    const grouped = {};
+    aiViolations.forEach(v => {
+      const loc = v.zone || v.camera_id || 'Unknown';
+      grouped[loc] = (grouped[loc] || 0) + 1;
+    });
+    overstays.forEach(s => {
+      const loc = `Zone ${s.zone}`;
+      grouped[loc] = (grouped[loc] || 0) + s.count;
+    });
 
     const activeHotspots = Object.keys(grouped).map(loc => ({
       zone: loc,
       violationCount: grouped[loc],
-      severityScore: grouped[loc] / maxViolations // normalized 0 to 1
+      severityScore: Math.min(1, grouped[loc] / 5)
     })).sort((a, b) => b.violationCount - a.violationCount);
 
-    // Pad with empty zones to make exactly 25 blocks for the 5x5 grid
-    const hotspots = [];
-    for (let i = 0; i < 25; i++) {
-      if (i < activeHotspots.length) {
-        hotspots.push(activeHotspots[i]);
-      } else {
-        hotspots.push({
-          zone: `Safe Zone ${i+1 - activeHotspots.length}`,
-          violationCount: 0,
-          severityScore: 0
-        });
-      }
-    }
+    const hotspots = Array.from({length: 25}).map((_, i) => {
+      return activeHotspots[i] || { zone: `Safe Area ${i+1}`, violationCount: 0, severityScore: 0 };
+    });
 
-    const payload = { success: true, data: { hotspots }, generatedAt: new Date().toISOString() };
-    await setCache(cacheKey, payload, TTL_HOTSPOTS);
-    res.json(payload);
+    res.json({ success: true, data: { hotspots }, generatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[Analytics] Hotspots Error:', err);
-    // Fallback if MongoDB is unreachable
+    // Fallback in case of error
     const hotspots = Array.from({length: 25}).map((_, i) => ({ zone: `Area ${i+1}`, violationCount: 0, severityScore: 0 }));
     res.json({ success: true, data: { hotspots }, generatedAt: new Date().toISOString() });
   }
@@ -280,6 +284,14 @@ export const getTrafficCorrelation = asyncHandler(async (req, res) => {
       zoneOccupancy['GLOBAL_COUNT'] = totalOccupied;
       zoneOccupancy['TRAFFIC_GLOBAL'] = totalTraffic;
       zoneOccupancy['TRAFFIC_EXIT'] = exitStats[0]?.count || 0;
+
+      // Real Analysis History count for last 24h
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const analysisStats = await db.select({ count: sql`count(*)`.mapWith(Number) })
+        .from(analysisHistory)
+        .where(gte(analysisHistory.created_at, last24h));
+      
+      zoneOccupancy['TRAFFIC_UPLOAD'] = analysisStats[0]?.count || 0;
     } catch (e) { console.warn('Postgres fetch failed', e); }
 
     // 3. Build the list
@@ -303,6 +315,9 @@ export const getTrafficCorrelation = asyncHandler(async (req, res) => {
       } else if (loc === 'Exit Gate') {
         currentOcc = 0;
         currentTraffic = zoneOccupancy['TRAFFIC_EXIT'] || 0;
+      } else if (loc === 'UPLOAD_ANALYSIS') {
+        currentOcc = zoneOccupancy['GLOBAL'] || 0;
+        currentTraffic = zoneOccupancy['TRAFFIC_UPLOAD'] || 0;
       } else {
         currentOcc = 0;
         currentTraffic = locSamples[0]?.vehicle_count || 0;
