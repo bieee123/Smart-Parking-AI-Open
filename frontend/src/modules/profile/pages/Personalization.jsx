@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiColorSwatch, HiTranslate, HiBell, HiMoon, HiSun, HiDesktopComputer, HiCheckCircle } from 'react-icons/hi';
+import { HiColorSwatch, HiTranslate, HiMoon, HiSun, HiDesktopComputer, HiCheckCircle } from 'react-icons/hi';
 import useAuth from '../../../hooks/useAuth';
 import { api } from '../../../services/api';
 
@@ -9,11 +9,6 @@ export default function Personalization() {
   const { user } = useAuth();
   const [lang, setLang] = useState(i18n.language || 'en');
   const [theme, setTheme] = useState('system');
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    alerts: false
-  });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -22,26 +17,30 @@ export default function Personalization() {
     setLang(i18n.language);
   }, [i18n.language]);
 
-  const handleLanguageChange = async (newLang) => {
+  const handleSave = async () => {
     setLoading(true);
     setSuccess('');
     try {
-      // 1. Update i18n locally
-      await i18n.changeLanguage(newLang);
-      setLang(newLang);
+      // 1. Update i18n locally if changed
+      if (i18n.language !== lang) {
+        await i18n.changeLanguage(lang);
+      }
 
       // 2. Save to DB
-      await api.profile.updateProfile({ language: newLang });
+      await api.profile.updateProfile({ 
+        language: lang,
+        // theme: theme // if backend supports theme persistence
+      });
 
       // 3. Update localStorage user data to keep it in sync
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      storedUser.language = newLang;
+      storedUser.language = lang;
       localStorage.setItem('user', JSON.stringify(storedUser));
 
       setSuccess(t('common.success'));
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      console.error('Failed to update language:', err);
+      console.error('Failed to save personalization:', err);
     } finally {
       setLoading(false);
     }
@@ -108,8 +107,7 @@ export default function Personalization() {
             ].map((l) => (
               <button
                 key={l.id}
-                onClick={() => handleLanguageChange(l.id)}
-                disabled={loading}
+                onClick={() => setLang(l.id)}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
                   lang === l.id 
                     ? 'border-indigo-500 bg-indigo-50 text-indigo-900' 
@@ -126,39 +124,15 @@ export default function Personalization() {
           </div>
         </section>
 
-        {/* Notifications */}
-        <section className="md:col-span-2 bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
-          <div className="flex items-center gap-3">
-            <HiBell className="text-amber-500 text-xl" />
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('personalization.notifications')}</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.keys(notifications).map((key) => (
-              <div key={key} className="flex items-center justify-between p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                <div>
-                  <p className="text-sm font-bold text-gray-900 capitalize">{key} Alerts</p>
-                  <p className="text-[10px] text-gray-500">Enable system {key}</p>
-                </div>
-                <div 
-                  onClick={() => setNotifications({...notifications, [key]: !notifications[key]})}
-                  className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${
-                    notifications[key] ? 'bg-primary-500' : 'bg-gray-200'
-                  }`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                    notifications[key] ? 'left-7' : 'left-1'
-                  }`} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
 
       <div className="mt-8 flex justify-end">
-        <button className="px-10 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95">
-          {t('common.save')}
+        <button 
+          onClick={handleSave}
+          disabled={loading}
+          className="px-10 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 disabled:bg-gray-400 disabled:shadow-none"
+        >
+          {loading ? t('common.loading') : t('common.save')}
         </button>
       </div>
     </div>

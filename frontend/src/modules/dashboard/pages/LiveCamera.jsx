@@ -4,7 +4,8 @@ import { api } from '../../../services/api';
 import { formatDate } from '../../../utils/helpers';
 import {
   HiCamera, HiTruck, HiChip, HiCloudUpload, HiPlay, HiCheckCircle,
-  HiRefresh, HiChevronRight, HiDownload, HiTrash, HiInformationCircle, HiX
+  HiRefresh, HiChevronRight, HiDownload, HiTrash, HiInformationCircle, HiX,
+  HiIdentification
 } from 'react-icons/hi';
 import { FaFileVideo, FaRobot, FaParking, FaTrafficLight } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
@@ -1137,8 +1138,8 @@ const LiveCamera = () => {
                           const p = item.plate_number || item.last_plate;
                           if (!p || p === 'N/A' || p === 'UNREADABLE') return null;
                           return (
-                            <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[9px] font-bold text-indigo-600 font-mono">
-                              🪪 {p}
+                            <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[9px] font-bold text-indigo-600 font-mono flex items-center gap-1">
+                              <HiIdentification className="text-xs" /> {p}
                             </span>
                           );
                         })()}

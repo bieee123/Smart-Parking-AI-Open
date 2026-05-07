@@ -214,7 +214,7 @@ class EnsembleEngine:
         dens_map = {"high": "Padat", "medium": "Sedang", "low": "Lancar"}
         m = mode_map.get(mode, "Normal")
         d = dens_map.get(density, "Normal")
-        return f"{camera_id}: {d} ({m}), {count} kendaraan terdeteksi."
+        return f"{camera_id}: Kondisi lalu lintas {d.lower()} ({m}), terdeteksi {count} kendaraan."
 
     def _fallback_result(self) -> dict:
         return {
