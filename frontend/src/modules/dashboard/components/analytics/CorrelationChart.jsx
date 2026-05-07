@@ -9,12 +9,13 @@
 export default function CorrelationChart({ data, title }) {
   const padding = { top: 40, right: 60, bottom: 30, left: 160 };
   const W = 600;
-  const H = 300;
+  // Dynamic height: minimum 200, plus 60px per area
+  const H = Math.max(200, data.length * 60 + padding.top + padding.bottom);
   const chartW = W - padding.left - padding.right;
   const chartH = H - padding.top - padding.bottom;
   
   const groupH = chartH / Math.max(1, data.length);
-  const barH = Math.min(groupH * 0.42, 36); // Increased max height to 36px and multiplier to 42%
+  const barH = Math.min(groupH * 0.35, 24); // Slightly smaller bars to fit labels better
   const gap = (groupH - barH * 2 - 4) / 2; // vertically center the group
 
   return (

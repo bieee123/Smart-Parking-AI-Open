@@ -224,56 +224,116 @@ export const getBottlenecks = asyncHandler(async (req, res) => {
  * Returns correlation analysis between traffic volume and parking demand.
  */
 export const getTrafficCorrelation = asyncHandler(async (req, res) => {
-  const cacheKey = 'analytics:correlation:v6:30d'; 
-  // Cache disabled for debugging
-  
+  const defaultAreas = ['UPLOAD_ANALYSIS', 'Entrance Gate', 'Zone A', 'Zone B', 'Zone C', 'Exit Gate'];
+  let correlations = [];
+  let samples = [];
+  let zoneOccupancy = {};
+
   try {
-    const collection = await getCollection('traffic_history');
-    const samples = await collection.find({}).sort({ timestamp: -1 }).limit(50).toArray();
-    
-    if (!samples || samples.length === 0) throw new Error('No traffic history in MongoDB');
+    // 1. Fetch Traffic Samples (MongoDB) - Still used for UPLOAD_ANALYSIS and baseline
+    try {
+      const collection = await getCollection('traffic_history');
+      samples = await collection.find({}).sort({ timestamp: -1 }).limit(100).toArray() || [];
+    } catch (e) { console.warn('Mongo fetch failed'); }
 
-    const totalSlotsResult = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(parkingSlots);
-    const totalCapacity = totalSlotsResult[0]?.count || 100;
-    
-    const [currentOccupied] = await db.select({ count: sql`count(*)`.mapWith(Number) })
-      .from(parkingSlots)
-      .where(or(
-        eq(parkingSlots.is_occupied, true),
-        eq(parkingSlots.status, 'occupied')
-      ));
-    
-    const liveOccupancyRate = parseFloat((currentOccupied.count / totalCapacity).toFixed(4));
+    // 2. Fetch Per-Zone Occupancy & Traffic (PostgreSQL)
+    try {
+      // Current Occupancy
+      const slots = await db.select({
+        zone: parkingSlots.zone,
+        total: sql`count(*)`.mapWith(Number),
+        occupied: sql`sum(case when is_occupied then 1 else 0 end)`.mapWith(Number)
+      }).from(parkingSlots).groupBy(parkingSlots.zone);
 
-    const uniqueLocations = [...new Set(samples.map(s => s.location || s.camera_id || 'Unknown Area'))];
-    
-    const correlations = uniqueLocations.map(loc => {
-      const locSamples = samples.filter(s => (s.location || s.camera_id || 'Unknown Area') === loc);
-      const xs = locSamples.map(s => s.vehicle_count || s.count || 0);
-      const ys = locSamples.map(s => s.occupancy_rate || 0.5);
-      const n = xs.length;
+      slots.forEach(s => {
+        zoneOccupancy[s.zone] = s.total > 0 ? parseFloat((s.occupied / s.total).toFixed(4)) : 0;
+        zoneOccupancy[`COUNT_${s.zone}`] = s.occupied; // Store raw count
+      });
 
-      let correlation = 0.85;
-      if (n >= 2) {
-        const meanX = xs.reduce((a, b) => a + b, 0) / n;
-        const meanY = ys.reduce((a, b) => a + b, 0) / n;
-        const cov = xs.reduce((sum, x, i) => sum + (x - meanX) * (ys[i] - meanY), 0) / n;
-        const stdX = Math.sqrt(xs.reduce((sum, x) => sum + Math.pow(x - meanX, 2), 0) / n);
-        const stdY = Math.sqrt(ys.reduce((sum, y) => sum + Math.pow(y - meanY, 2), 0) / n);
-        correlation = (stdX > 0 && stdY > 0) ? (cov / (stdX * stdY)) : 0.85;
+      // Real Traffic (Entries today)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const entryStats = await db.select({
+        zone: parkingSlots.zone,
+        count: sql`count(*)`.mapWith(Number)
+      })
+      .from(parkingLogs)
+      .innerJoin(parkingSlots, eq(parkingLogs.slot_id, parkingSlots.id))
+      .where(gte(parkingLogs.entry_time, today))
+      .groupBy(parkingSlots.zone);
+
+      entryStats.forEach(s => {
+        zoneOccupancy[`TRAFFIC_${s.zone}`] = s.count;
+      });
+      
+      const totalOccupied = slots.reduce((sum, s) => sum + s.occupied, 0);
+      const totalSlots = slots.reduce((sum, s) => sum + s.total, 0);
+      const totalTraffic = entryStats.reduce((sum, s) => sum + s.count, 0);
+
+      // Exit traffic today
+      const exitStats = await db.select({ count: sql`count(*)`.mapWith(Number) })
+        .from(parkingLogs)
+        .where(and(gte(parkingLogs.exit_time, today), eq(parkingLogs.status, 'completed')));
+
+      zoneOccupancy['GLOBAL'] = totalSlots > 0 ? parseFloat((totalOccupied / totalSlots).toFixed(4)) : 0;
+      zoneOccupancy['GLOBAL_COUNT'] = totalOccupied;
+      zoneOccupancy['TRAFFIC_GLOBAL'] = totalTraffic;
+      zoneOccupancy['TRAFFIC_EXIT'] = exitStats[0]?.count || 0;
+    } catch (e) { console.warn('Postgres fetch failed', e); }
+
+    // 3. Build the list
+    correlations = defaultAreas.map(loc => {
+      const locSamples = samples.filter(s => {
+        const sLoc = s.location || s.camera_id;
+        const normalized = sLoc === 'Main Entrance' ? 'Entrance Gate' : sLoc;
+        return normalized === loc;
+      });
+
+      const zoneKey = loc.replace('Zone ', '').trim();
+      let currentOcc = 0;
+      let currentTraffic = 0;
+
+      if (zoneOccupancy[zoneKey] !== undefined) {
+        currentOcc = zoneOccupancy[zoneKey];
+        currentTraffic = Math.max(zoneOccupancy[`TRAFFIC_${zoneKey}`] || 0, zoneOccupancy[`COUNT_${zoneKey}`] || 0);
+      } else if (loc === 'Entrance Gate') {
+        currentOcc = 0;
+        currentTraffic = 0;
+      } else if (loc === 'Exit Gate') {
+        currentOcc = 0;
+        currentTraffic = zoneOccupancy['TRAFFIC_EXIT'] || 0;
+      } else {
+        currentOcc = 0;
+        currentTraffic = locSamples[0]?.vehicle_count || 0;
       }
 
       const dailySamples = locSamples.slice(0, 6).map(s => ({
         date: s.timestamp,
         trafficVolume: s.vehicle_count || s.count || 0,
-        parkingOccupancy: s.occupancy_rate || 0
+        parkingOccupancy: s.occupancy_rate || currentOcc
       }));
 
+      // Add live data point
       dailySamples.unshift({
         date: new Date().toISOString(),
-        trafficVolume: xs[0] || 0, 
-        parkingOccupancy: liveOccupancyRate 
+        trafficVolume: currentTraffic,
+        parkingOccupancy: currentOcc
       });
+
+      // Real correlation calculation
+      const xs = locSamples.length >= 2 ? locSamples.map(s => s.vehicle_count || s.count || 0) : [currentTraffic, currentTraffic];
+      const ys = locSamples.length >= 2 ? locSamples.map(s => s.occupancy_rate || currentOcc) : [currentOcc, currentOcc];
+      let correlation = 0;
+      if (xs.length >= 2) {
+        const n = xs.length;
+        const meanX = xs.reduce((a, b) => a + b, 0) / n;
+        const meanY = ys.reduce((a, b) => a + b, 0) / n;
+        const cov = xs.reduce((sum, x, i) => sum + (x - meanX) * (ys[i] - meanY), 0) / n;
+        const stdX = Math.sqrt(xs.reduce((sum, x) => sum + Math.pow(x - meanX, 2), 0) / n);
+        const stdY = Math.sqrt(ys.reduce((sum, y) => sum + Math.pow(y - meanY, 2), 0) / n);
+        correlation = (stdX > 0 && stdY > 0) ? (cov / (stdX * stdY)) : 0.8;
+      }
 
       return {
         areaName: loc,
@@ -282,15 +342,13 @@ export const getTrafficCorrelation = asyncHandler(async (req, res) => {
       };
     });
 
-    const payload = {
+    return res.json({
       success: true,
-      data: { range: '30d', metric: 'Pearson correlation', correlations },
-      generatedAt: new Date().toISOString(),
-    };
-    return res.json(payload);
+      data: { correlations }
+    });
   } catch (err) {
-    console.warn('[Analytics] getTrafficCorrelation (no data):', err.message);
-    return res.json({ success: true, data: { range: '30d', correlations: [] }, generatedAt: new Date().toISOString() });
+    console.error('Fatal Analytics Error:', err);
+    return res.json({ success: false, error: err.message });
   }
 });
 

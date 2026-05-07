@@ -29,7 +29,7 @@ function getColor(value) {
 
 export default function ViolationHeatmap({ data, rows = 5, cols = 5, title }) {
   return (
-    <div className="w-full">
+    <div className="w-full max-w-[360px] mx-auto">
       {title && <h3 className="text-lg font-semibold text-gray-700 mb-4">{title}</h3>}
 
       {/* Column headers */}
@@ -49,21 +49,21 @@ export default function ViolationHeatmap({ data, rows = 5, cols = 5, title }) {
             Row {r + 1}
           </div>
           <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-              {Array.from({ length: cols }, (_, c) => {
-                const cell = data.find((d) => d.row === r && d.col === c);
-                const val = cell ? cell.value : 0;
-                const count = cell ? cell.count : 0;
-                const zone = cell ? cell.zone : '—';
-                return (
-                  <div
-                    key={c}
-                    className={`rounded flex items-center justify-center text-[10px] font-bold aspect-square transition-all cursor-default ${getColor(val)}`}
-                    title={`Zone: ${zone} | Violations: ${count}`}
-                  >
-                    {count > 0 ? count : '—'}
-                  </div>
-                );
-              })}
+            {Array.from({ length: cols }, (_, c) => {
+              const cell = data.find((d) => d.row === r && d.col === c);
+              const val = cell ? cell.value : 0;
+              const count = cell ? cell.count : 0;
+              const zone = cell ? cell.zone : '—';
+              return (
+                <div
+                  key={c}
+                  className={`rounded flex items-center justify-center text-[10px] font-bold aspect-square transition-all cursor-default ${getColor(val)}`}
+                  title={`Zone: ${zone} | Violations: ${count}`}
+                >
+                  {count > 0 ? count : '—'}
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}

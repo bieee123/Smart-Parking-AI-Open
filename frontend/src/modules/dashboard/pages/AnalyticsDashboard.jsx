@@ -300,7 +300,12 @@ export default function AnalyticsDashboard() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { 
+    fetchAll(); 
+    // Auto-refresh every 30 seconds to keep analytics in sync with real-time events
+    const interval = setInterval(fetchAll, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Transform data for chart components
   const occupancyData = buildOccupancyData(trendsData, range);
