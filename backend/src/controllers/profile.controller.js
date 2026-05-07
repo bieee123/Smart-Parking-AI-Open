@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/postgres.js';
 import { users, userActivities } from '../db/drizzle/schema.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -166,4 +166,19 @@ export const deleteAccount = asyncHandler(async (req, res) => {
   }
 
   res.json({ success: true, message: 'Account deleted successfully' });
+});
+
+/**
+ * Revoke all sessions by updating security stamp
+ */
+export const revokeAllSessions = asyncHandler(async (req, res) => {
+  await db
+    .update(users)
+    .set({
+      security_stamp: sql`gen_random_uuid()`,
+      updated_at: new Date()
+    })
+    .where(eq(users.id, req.user.id));
+
+  res.json({ success: true, message: 'All sessions revoked successfully. Please log in again on other devices.' });
 });

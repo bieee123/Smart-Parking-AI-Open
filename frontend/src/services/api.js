@@ -46,6 +46,7 @@ export const api = {
       request('/profile/password', { method: 'POST', body: JSON.stringify(data) }),
     getActivities: () => request('/profile/activities'),
     deleteAccount: () => request('/profile', { method: 'DELETE' }),
+    revokeSessions: () => request('/profile/revoke-sessions', { method: 'POST' }),
   },
 
   // Admin Management

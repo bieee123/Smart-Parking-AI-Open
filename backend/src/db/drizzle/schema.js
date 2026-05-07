@@ -20,7 +20,8 @@ export const users = pgTable('users', {
   phone: varchar('phone', { length: 20 }),
   bio: text('bio'),
   avatar_url: text('avatar_url'),
-  assigned_zones: text('assigned_zones'), // JSON string or comma-separated
+  security_stamp: uuid('security_stamp').defaultRandom().notNull(),
+  assigned_zones: jsonb('assigned_zones'), // array of zone IDs for operators
   role: varchar('role', { length: 20 }).notNull().default('user'), // admin, operator, viewer
   is_active: boolean('is_active').notNull().default(true),
   created_at: timestamp('created_at').defaultNow().notNull(),
