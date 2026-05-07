@@ -486,26 +486,26 @@ const LiveCamera = () => {
 
           // Update current preview incrementally
           setTrafficData({
-            vehicle_count:    data.result.total_vehicles || data.result.vehicle_count || 0,
-            density_level:    data.result.avg_density    || data.result.density_level || 'medium',
-            plate_number:     plate,
+            vehicle_count: data.result.total_vehicles || data.result.vehicle_count || 0,
+            density_level: data.result.avg_density || data.result.density_level || 'medium',
+            plate_number: plate,
             plate_confidence: plateConf,
-            last_plate:       plate,   // keep for legacy renders
-            boxes:            data.result.boxes || [],
-            source:           'video-live',
+            last_plate: plate,   // keep for legacy renders
+            boxes: data.result.boxes || [],
+            source: 'video-live',
           });
 
           // Upsert into history incrementally
           setAnalysisHistory(prev => {
             const exists = prev.find(item => item.id === jobId);
             const newData = {
-              id:              jobId,
-              vehicle_count:   data.result.total_vehicles || data.result.vehicle_count || 0,
-              density_level:   data.result.avg_density    || data.result.density_level || 'medium',
-              plate_number:    plate,
+              id: jobId,
+              vehicle_count: data.result.total_vehicles || data.result.vehicle_count || 0,
+              density_level: data.result.avg_density || data.result.density_level || 'medium',
+              plate_number: plate,
               plate_confidence: plateConf,
-              last_plate:      plate,
-              timestamp:       exists?.timestamp || new Date().toISOString(),
+              last_plate: plate,
+              timestamp: exists?.timestamp || new Date().toISOString(),
             };
             return exists
               ? prev.map(item => item.id === jobId ? newData : item)
@@ -537,7 +537,7 @@ const LiveCamera = () => {
 
   const handleSyncToSlot = async () => {
     if (!syncingSlot || !trafficData) return;
-    
+
     const plate = trafficData.plate_number || trafficData.last_plate;
     if (!plate || plate === 'UNREADABLE' || plate === 'N/A') {
       alert("Cannot sync: No valid license plate detected.");
@@ -554,7 +554,7 @@ const LiveCamera = () => {
         license_plate: plate,
         vehicle_type: 'car', // Default to car, or could infer from detection
       });
-      
+
       setSyncSuccess(true);
       setTimeout(() => setSyncSuccess(false), 3000);
     } catch (err) {
@@ -1058,9 +1058,8 @@ const LiveCamera = () => {
                 <div className="grid grid-cols-1 gap-10">
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className={`relative group cursor-pointer border-3 border-dashed rounded-[2.5rem] p-12 transition-all flex flex-col items-center justify-center gap-6 ${
-                      sourceMode === 'upload' ? 'bg-primary-50/30 border-primary-200 hover:border-primary-400 hover:bg-primary-50' : 'bg-gray-50 border-gray-200'
-                    }`}
+                    className={`relative group cursor-pointer border-3 border-dashed rounded-[2rem] p-6 transition-all flex flex-col items-center justify-center gap-3 ${sourceMode === 'upload' ? 'bg-primary-50/30 border-primary-200 hover:border-primary-400 hover:bg-primary-50' : 'bg-gray-50 border-gray-200'
+                      }`}
                   >
                     <input
                       type="file"
@@ -1069,8 +1068,8 @@ const LiveCamera = () => {
                       accept="video/*,image/*"
                       onChange={handleVideoUpload}
                     />
-                    <div className="w-24 h-24 bg-white rounded-3xl shadow-xl shadow-primary-500/10 flex items-center justify-center text-primary-600 transition-transform group-hover:scale-110">
-                      <HiCloudUpload className="text-5xl" />
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-xl shadow-primary-500/10 flex items-center justify-center text-primary-600 transition-transform group-hover:scale-110">
+                      <HiCloudUpload className="text-3xl" />
                     </div>
                     <div className="text-center">
                       <h3 className="text-lg font-bold text-gray-900">{t('live_camera.drop_file')}</h3>
@@ -1157,7 +1156,7 @@ const LiveCamera = () => {
 
           {/* Right Column: Results Area */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 h-full overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[650px]">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-gray-900">{t('live_camera.analysis_result')}</h2>
                 {trafficData && (
@@ -1185,7 +1184,7 @@ const LiveCamera = () => {
                 </div>
               )}
 
-              <div className="flex-1 bg-gray-900 relative flex items-center justify-center min-h-[400px] overflow-hidden">
+              <div className="flex-1 bg-gray-900 relative flex items-center justify-center overflow-hidden">
                 {previewUrl ? (
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                     {fileType === 'video' ? (
@@ -1221,15 +1220,15 @@ const LiveCamera = () => {
                           </div>
                           <div className="w-px h-10 bg-white/10" />
                           <div className="flex flex-col">
-                             <p className="text-[10px] text-green-400 font-black uppercase tracking-widest mb-1">{t('dashboard.license_plate')}</p>
-                             <p className="text-xl font-mono font-bold text-white leading-none">
-                               {trafficData?.plate_number || trafficData?.last_plate || 'N/A'}
-                             </p>
-                             {trafficData?.plate_confidence > 0 && (
-                               <p className="text-[9px] text-green-400/70 mt-0.5">
-                                 {Math.round(trafficData.plate_confidence * 100)}% {t('live_camera.conf')}
-                               </p>
-                             )}
+                            <p className="text-[10px] text-green-400 font-black uppercase tracking-widest mb-1">{t('dashboard.license_plate')}</p>
+                            <p className="text-xl font-mono font-bold text-white leading-none">
+                              {trafficData?.plate_number || trafficData?.last_plate || 'N/A'}
+                            </p>
+                            {trafficData?.plate_confidence > 0 && (
+                              <p className="text-[9px] text-green-400/70 mt-0.5">
+                                {Math.round(trafficData.plate_confidence * 100)}% {t('live_camera.conf')}
+                              </p>
+                            )}
                           </div>
                           <div className="w-px h-10 bg-white/10" />
                           <div className="flex flex-col">
@@ -1245,7 +1244,7 @@ const LiveCamera = () => {
                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex items-center gap-4 z-30 animate-in slide-in-from-bottom-4 duration-500">
                         <div className="flex flex-col">
                           <label className="text-[10px] text-gray-400 font-bold uppercase mb-1">{t('live_camera.assign_to_slot')}</label>
-                          <select 
+                          <select
                             value={syncingSlot}
                             onChange={(e) => setSyncingSlot(e.target.value)}
                             className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:ring-1 focus:ring-blue-500"
@@ -1259,11 +1258,10 @@ const LiveCamera = () => {
                         <button
                           onClick={handleSyncToSlot}
                           disabled={!syncingSlot || isSyncing}
-                          className={`mt-4 px-6 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                            syncSuccess 
-                              ? 'bg-green-500 text-white' 
-                              : 'bg-blue-600 hover:bg-blue-500 text-white disabled:bg-gray-700 disabled:text-gray-500'
-                          }`}
+                          className={`mt-4 px-6 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${syncSuccess
+                            ? 'bg-green-500 text-white'
+                            : 'bg-blue-600 hover:bg-blue-500 text-white disabled:bg-gray-700 disabled:text-gray-500'
+                            }`}
                         >
                           {isSyncing ? (
                             <HiRefresh className="animate-spin" />
