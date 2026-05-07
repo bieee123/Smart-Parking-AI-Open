@@ -59,8 +59,7 @@ function ResultPanel({ result, title }) {
   const analysis = result.analysis || {};
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm h-full flex flex-col">
-      <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-        <FaParking className="text-blue-500" />
+      <h3 className="text-sm font-bold text-gray-700">
         {title}
       </h3>
 
@@ -82,13 +81,13 @@ function ResultPanel({ result, title }) {
 
       {result.bottlenecks && result.bottlenecks.length > 0 && (
         <div className="pt-2 border-t border-gray-100">
-          <p className="text-[10px] font-black text-red-600 mb-2 flex items-center gap-1 uppercase tracking-widest">
-            <HiExclamationCircle /> Bottlenecks
+          <p className="text-xs font-semibold text-red-600 mb-2 uppercase tracking-wider">
+            Bottlenecks
           </p>
           {result.bottlenecks.map((b, i) => (
             <div key={i} className="bg-red-50 border border-red-100 rounded-lg p-2 mb-2">
               <div className="flex justify-between items-center mb-1">
-                <p className="text-[10px] text-red-800 font-black uppercase tracking-tight">{b.area}</p>
+                <p className="text-xs text-red-800 font-semibold uppercase tracking-wider">{b.area}</p>
                 <Badge level={b.level} />
               </div>
               {b.reasons && b.reasons.map((r, j) => (
@@ -101,8 +100,8 @@ function ResultPanel({ result, title }) {
 
       {result.suggestions && result.suggestions.length > 0 && (
         <div className="pt-2 border-t border-gray-100 mt-auto">
-          <p className="text-[10px] font-black text-blue-600 mb-2 flex items-center gap-1 uppercase tracking-widest">
-            <HiDocumentReport /> AI Suggestions
+          <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wider">
+            AI Suggestions
           </p>
           <div className="space-y-1">
             {result.suggestions.map((s, i) => (
@@ -164,7 +163,7 @@ function PolicyResultPanel({ result, loading }) {
 
       {diff !== undefined && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-bold uppercase tracking-widest">{t('simulator.eff_change')}:</span>
+          <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">{t('simulator.eff_change')}:</span>
           <span className={`text-sm font-black px-2 py-0.5 rounded ${diff >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
             {diff >= 0 ? '+' : ''}{(diff * 100).toFixed(1)}%
           </span>
@@ -173,8 +172,8 @@ function PolicyResultPanel({ result, loading }) {
 
       {result.actions && result.actions.length > 0 && (
         <div>
-          <p className="text-[10px] font-black text-purple-600 mb-2 uppercase tracking-widest flex items-center gap-1">
-            <HiDocumentReport /> {t('simulator.policy_effects')}
+          <p className="text-xs font-semibold text-purple-600 mb-2 uppercase tracking-wider">
+            {t('simulator.policy_effects')}
           </p>
           {result.actions.map((a, i) => (
             <p key={i} className="text-xs font-bold text-gray-600 bg-gray-50 rounded p-2 mb-1 border border-gray-100">• {a}</p>
@@ -431,22 +430,22 @@ export default function SimulatorPage() {
             {!multiLoading && multiResult && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    ['System Status', multiResult.status, multiResult.status],
-                    ['Areas Analyzed', multiResult.areas_analyzed, null],
-                    ['Critical Areas', multiResult.summary?.critical_count, 'critical'],
-                    ['Efficiency', `${Math.round((multiResult.efficiency_score || 0) * 100)}%`, null],
-                  ].map(([label, val, level]) => (
+                    {[
+                      ['System Status', multiResult.status, multiResult.status],
+                      ['Areas Analyzed', multiResult.areas_analyzed, null],
+                      ['Critical Areas', multiResult.summary?.critical_count, null],
+                      ['Efficiency', `${Math.round((multiResult.efficiency_score || 0) * 100)}%`, null],
+                    ].map(([label, val, level]) => (
                     <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                      <p className="text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">{label}</p>
+                      <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">{label}</p>
                       {level ? <Badge level={String(val).toLowerCase()} /> : <p className="text-xl font-black text-gray-900">{val}</p>}
                     </div>
                   ))}
                 </div>
                 {multiResult.reroute_suggestions && multiResult.reroute_suggestions.length > 0 && (
                   <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <p className="text-xs font-black text-green-600 mb-3 uppercase tracking-widest flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-green-500" /> 🔀 Reroute Suggestions
+                    <p className="text-xs font-semibold text-green-600 mb-3 uppercase tracking-wider">
+                      Reroute Suggestions
                     </p>
                     {multiResult.reroute_suggestions.map((s, i) => (
                       <p key={i} className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-100 rounded p-2 mb-1">• {s.message}</p>
@@ -480,7 +479,7 @@ export default function SimulatorPage() {
                 <label className={labelCls}>{selectedPolicy.paramLabel}</label>
                 <input type="number" className={inputCls} value={policy.paramVal} onChange={e => setPolicy(p => ({ ...p, paramVal: e.target.value }))} />
               </div>
-              <p className="text-[10px] font-black text-gray-400 pt-4 border-t border-gray-100 uppercase tracking-widest">Current System State</p>
+              <p className="text-xs font-semibold text-gray-400 pt-4 border-t border-gray-100 uppercase tracking-wider">Current System State</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Occupancy %</label>

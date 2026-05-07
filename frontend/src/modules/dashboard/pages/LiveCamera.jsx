@@ -1050,7 +1050,7 @@ const LiveCamera = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{t('live_camera.upload_video')}</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('live_camera.upload_video')}</h2>
                   <p className="text-sm text-gray-500 mt-1">{t('live_camera.upload_desc')}</p>
                 </div>
               </div>
@@ -1073,8 +1073,8 @@ const LiveCamera = () => {
                       <HiCloudUpload className="text-3xl" />
                     </div>
                     <div className="text-center">
-                      <h3 className="text-lg font-bold text-gray-900">{t('live_camera.drop_file')}</h3>
-                      <p className="text-sm text-gray-400 mt-2 font-medium">{t('live_camera.drop_desc')}</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{t('live_camera.drop_file')}</h3>
+                      <p className="text-sm text-gray-500 mt-2">{t('live_camera.drop_desc')}</p>
                     </div>
                   </div>
                 </div>
@@ -1109,7 +1109,7 @@ const LiveCamera = () => {
             {/* Analysis History */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mt-6 overflow-hidden">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('live_camera.history')}</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('live_camera.history')}</h2>
                 <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{analysisHistory.length} {t('live_camera.entries')}</span>
               </div>
               <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
@@ -1159,7 +1159,7 @@ const LiveCamera = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[650px]">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">{t('live_camera.analysis_result')}</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('live_camera.analysis_result')}</h2>
                 {trafficData && (
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-mono text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
