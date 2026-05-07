@@ -7,6 +7,7 @@ import {
   boolean,
   integer,
   uuid,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 
 // Users table

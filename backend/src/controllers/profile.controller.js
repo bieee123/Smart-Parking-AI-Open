@@ -133,15 +133,34 @@ export const changePassword = asyncHandler(async (req, res) => {
 });
 
 /**
- * Get current user activity logs
+ * Get activity logs (Global for Admin, Private for others)
  */
 export const getMyActivities = asyncHandler(async (req, res) => {
-  const activities = await db
-    .select()
+  const isAdmin = req.user.role === 'admin';
+
+  let query = db
+    .select({
+      id: userActivities.id,
+      user_id: userActivities.user_id,
+      action: userActivities.action,
+      device_info: userActivities.device_info,
+      ip_address: userActivities.ip_address,
+      created_at: userActivities.created_at,
+      username: users.username,
+      role: users.role
+    })
     .from(userActivities)
-    .where(eq(userActivities.user_id, req.user.id))
+    .leftJoin(users, eq(userActivities.user_id, users.id));
+
+  if (!isAdmin) {
+    query = query.where(eq(userActivities.user_id, req.user.id));
+  }
+
+  const activities = await query
     .orderBy(desc(userActivities.created_at))
-    .limit(50);
+    .limit(100);
+
+  console.log(`[GET_ACTIVITIES] Found ${activities.length} records for role: ${req.user.role}`);
 
   res.json({ success: true, data: activities });
 });

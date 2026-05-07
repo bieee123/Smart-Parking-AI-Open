@@ -136,37 +136,56 @@ export default function Sessions() {
               <div className="p-20 text-center text-gray-400 italic">No session history found.</div>
             )}
             
-            {activities.map((session, index) => (
-              <div key={session.id} className="p-8 hover:bg-gray-50 transition-colors flex items-start gap-6">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm ${
-                  index === 0 ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'
-                }`}>
-                  {session.device_info?.includes('iPhone') || session.device_info?.includes('Android') ? <HiDeviceMobile /> : <HiDesktopComputer />}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-sm font-bold text-gray-900">{parseDevice(session.device_info)}</h3>
-                    {index === 0 && (
-                      <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                        <HiCheckCircle /> Current Session
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 font-medium">Unknown Location • {session.ip_address}</p>
-                  <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">{formatTimeAgo(session.created_at)}</p>
-                </div>
+            {activities.map((session, index) => {
+              const isOwnSession = session.user_id === JSON.parse(localStorage.getItem('user'))?.id;
+              const isLatestOwn = isOwnSession && activities.find(a => a.user_id === session.user_id)?.id === session.id;
 
-                {userRole === 'admin' && index !== 0 && (
-                  <button 
-                    onClick={handleSignOutAll}
-                    className="text-xs font-black text-gray-400 hover:text-red-600 uppercase tracking-widest transition-colors py-2 px-4 rounded-xl hover:bg-red-50"
-                  >
-                    Revoke
-                  </button>
-                )}
-              </div>
-            ))}
+              return (
+                <div key={session.id} className="p-8 hover:bg-gray-50 transition-colors flex items-start gap-6">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm ${
+                    isLatestOwn ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {session.device_info?.includes('iPhone') || session.device_info?.includes('Android') ? <HiDeviceMobile /> : <HiDesktopComputer />}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center flex-wrap gap-2 mb-1">
+                      <h3 className="text-sm font-bold text-gray-900">{parseDevice(session.device_info)}</h3>
+                      
+                      {/* ADMIN: Show who this is */}
+                      {userRole === 'admin' && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-gray-300">•</span>
+                          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                            @{session.username}
+                          </span>
+                          <span className="text-[10px] font-medium text-gray-400 capitalize bg-gray-100 px-2 py-0.5 rounded-md">
+                            {session.role}
+                          </span>
+                        </div>
+                      )}
+
+                      {isLatestOwn && (
+                        <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                          <HiCheckCircle /> Current Session
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 font-medium">IP: {session.ip_address === '::1' ? '::1 (Localhost)' : session.ip_address}</p>
+                    <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">{formatTimeAgo(session.created_at)}</p>
+                  </div>
+
+                  {userRole === 'admin' && !isLatestOwn && (
+                    <button 
+                      onClick={handleSignOutAll}
+                      className="px-4 py-2 border border-red-200 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-50 transition-all active:scale-95 shadow-sm bg-white"
+                    >
+                      Revoke Session
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
