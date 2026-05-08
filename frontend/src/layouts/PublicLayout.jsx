@@ -24,6 +24,16 @@ export default function PublicLayout({ children }) {
     else navigate('/login');
   };
 
+  const handleNav = (id) => {
+    setMenuOpen(false);
+    if (window.location.pathname === '/') {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate(`/#${id}`);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -32,8 +42,10 @@ export default function PublicLayout({ children }) {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-700">
       {/* Navbar */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/80 backdrop-blur-lg border-b border-slate-200 py-3 shadow-sm' : 'bg-transparent py-5'
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled 
+          ? 'bg-white/60 backdrop-blur-xl border-b border-white/20 py-3 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]' 
+          : 'bg-transparent py-6'
       }`}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           {/* Logo */}
@@ -48,9 +60,9 @@ export default function PublicLayout({ children }) {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-10">
-            <a href="#features" className="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">How it Works</a>
-            <a href="#zones" className="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">Availability</a>
+            <button onClick={() => handleNav('features')} className="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">Features</button>
+            <button onClick={() => handleNav('how-it-works')} className="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">How it Works</button>
+            <button onClick={() => handleNav('zones')} className="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors">Availability</button>
           </div>
 
           {/* CTA Buttons */}
@@ -94,12 +106,12 @@ export default function PublicLayout({ children }) {
         {/* Mobile Menu */}
         {menuOpen && (
           <div className="md:hidden absolute top-full left-0 right-0 bg-white border-t border-slate-100 px-6 py-6 flex flex-col gap-5 shadow-xl">
-            <a href="#features" className="text-base font-semibold text-slate-700">Fitur</a>
-            <a href="#how-it-works" className="text-base font-semibold text-slate-700">Cara Kerja</a>
-            <a href="#zones" className="text-base font-semibold text-slate-700">Cek Ketersediaan</a>
+            <button onClick={() => handleNav('features')} className="text-left text-base font-semibold text-slate-700">Features</button>
+            <button onClick={() => handleNav('how-it-works')} className="text-left text-base font-semibold text-slate-700">How it Works</button>
+            <button onClick={() => handleNav('zones')} className="text-left text-base font-semibold text-slate-700">Availability</button>
             <div className="flex flex-col gap-3 pt-4 border-t border-slate-100">
-              <Link to="/login" className="w-full py-3 text-center text-sm font-bold text-slate-700 border border-slate-200 rounded-xl">Masuk</Link>
-              <Link to="/register" className="w-full py-3 text-center text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">Daftar Gratis</Link>
+              <Link to="/login" className="w-full py-3 text-center text-sm font-bold text-slate-700 border border-slate-200 rounded-xl" onClick={() => setMenuOpen(false)}>Sign In</Link>
+              <Link to="/register" className="w-full py-3 text-center text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100" onClick={() => setMenuOpen(false)}>Join Now</Link>
             </div>
           </div>
         )}
@@ -126,8 +138,8 @@ export default function PublicLayout({ children }) {
             <div>
               <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-6">Product</h4>
               <ul className="space-y-4 text-sm">
-                <li><a href="#features" className="hover:text-white transition-colors">Key Features</a></li>
-                <li><a href="#zones" className="hover:text-white transition-colors">Real-time Slots</a></li>
+                <li><button onClick={() => handleNav('features')} className="hover:text-white transition-colors">Key Features</button></li>
+                <li><button onClick={() => handleNav('zones')} className="hover:text-white transition-colors">Real-time Slots</button></li>
                 <li><Link to="/parking" className="hover:text-white transition-colors">Online Reservation</Link></li>
               </ul>
             </div>

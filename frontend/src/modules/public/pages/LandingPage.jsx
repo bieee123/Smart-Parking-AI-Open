@@ -109,12 +109,22 @@ export default function LandingPage() {
         }
       })
       .finally(() => setLoading(false));
+
+    // Handle hash scroll on mount
+    const hash = window.location.hash;
+    if (hash) {
+      setTimeout(() => {
+        const id = hash.replace('#', '');
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 500); // Small delay to ensure content is rendered
+    }
   }, []);
 
   return (
     <PublicLayout>
       {/* ── HERO SECTION ────────────────────────────────── */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+      <section className="relative pt-20 pb-16 md:pt-32 md:pb-24 overflow-hidden">
         {/* Abstract Background Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-50 rounded-full blur-[120px] opacity-60"></div>
@@ -122,7 +132,7 @@ export default function LandingPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black uppercase tracking-widest mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black uppercase tracking-widest mb-6">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -130,12 +140,12 @@ export default function LandingPage() {
             Next-Gen Parking System
           </div>
           
-          <h1 className="text-5xl md:text-8xl font-black text-slate-900 mb-8 tracking-tighter leading-[0.9]">
+          <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tighter leading-[0.9]">
             The Smartest <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Parking Solution.</span>
           </h1>
           
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 mb-12 leading-relaxed">
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 mb-10 leading-relaxed">
             Manage your parking space with AI precision. Real-time monitoring, instant reservations, and deep analytics in one unified platform.
           </p>
 
@@ -156,7 +166,7 @@ export default function LandingPage() {
           </div>
 
           {/* Quick Stats Grid */}
-          <div className="mt-24 grid grid-cols-2 md:grid-cols-5 gap-8 max-w-5xl mx-auto border-t border-slate-100 pt-16">
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-5 gap-8 max-w-5xl mx-auto border-t border-slate-100 pt-12">
             <StatItem label="Total Slots" value={stats.total} colorClass="text-slate-900" />
             <StatItem label="Available" value={stats.available} colorClass="text-emerald-500" />
             <StatItem label="Reserved" value={stats.reserved} colorClass="text-blue-500" />
@@ -248,7 +258,7 @@ export default function LandingPage() {
                 zones.map(z => <ZoneStatusCard key={z.zone} {...z} />)
               ) : (
                 <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 font-bold uppercase tracking-widest">
-                  Menunggu Sinkronisasi Sensor...
+                  Waiting for Sensor Synchronization...
                 </div>
               )}
             </div>
@@ -257,27 +267,27 @@ export default function LandingPage() {
       </section>
 
       {/* ── TARIFF TABLE ────────────────────────────────── */}
-      <section className="py-32 bg-white">
+      <section id="how-it-works" className="py-32 bg-white">
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-20">
-            <h2 className="text-indigo-600 text-sm font-black uppercase tracking-[0.2em] mb-4">Biaya Layanan</h2>
-            <p className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter">Tarif Transparan.</p>
+            <h2 className="text-indigo-600 text-sm font-black uppercase tracking-[0.2em] mb-4">Service Rates</h2>
+            <p className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter">Transparent Pricing.</p>
           </div>
 
           <div className="overflow-hidden rounded-[32px] border border-slate-200 shadow-2xl shadow-indigo-100">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="px-8 py-6 text-sm font-bold uppercase tracking-widest">Tipe Kendaraan</th>
-                  <th className="px-8 py-6 text-sm font-bold uppercase tracking-widest">Jam Pertama</th>
-                  <th className="px-8 py-6 text-sm font-bold uppercase tracking-widest">Per Jam Berikutnya</th>
+                  <th className="px-8 py-6 text-sm font-bold uppercase tracking-widest">Vehicle Type</th>
+                  <th className="px-8 py-6 text-sm font-bold uppercase tracking-widest">First Hour</th>
+                  <th className="px-8 py-6 text-sm font-bold uppercase tracking-widest">Next Hour</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {[
-                  { icon: FaCar,        name: 'Mobil Pribadi', first: 5000, next: 2000 },
-                  { icon: FaTruck,      name: 'Truk / Bus',    first: 5000, next: 2000 },
-                  { icon: FaMotorcycle, name: 'Sepeda Motor',  first: 3000, next: 2000 },
+                  { icon: FaCar,        name: 'Private Car',    first: 5000, next: 2000 },
+                  { icon: FaTruck,      name: 'Truck / Bus',    first: 5000, next: 2000 },
+                  { icon: FaMotorcycle, name: 'Motorcycle',     first: 3000, next: 2000 },
                 ].map((item) => (
                   <tr key={item.name} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-8 py-8">
@@ -288,15 +298,15 @@ export default function LandingPage() {
                         <span className="font-black text-slate-900">{item.name}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-8 font-bold text-slate-900">Rp {item.first.toLocaleString('id-ID')}</td>
-                    <td className="px-8 py-8 font-bold text-indigo-600">Rp {item.next.toLocaleString('id-ID')}</td>
+                    <td className="px-8 py-8 font-bold text-slate-900">IDR {item.first.toLocaleString('en-US')}</td>
+                    <td className="px-8 py-8 font-bold text-indigo-600">IDR {item.next.toLocaleString('en-US')}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="mt-8 text-center text-xs text-slate-400 font-medium italic">
-            * Seluruh tarif sudah termasuk pajak dan asuransi keamanan di area parkir.
+            * All rates include tax and security insurance in the parking area.
           </p>
         </div>
       </section>
@@ -310,23 +320,24 @@ export default function LandingPage() {
         
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <h2 className="text-4xl md:text-7xl font-black text-white tracking-tighter mb-10 leading-[0.9]">
-            Mulai Revolusi <br />Parkir Anda Hari Ini.
+            Start Your Parking <br />Revolution Today.
           </h2>
           <p className="text-slate-400 text-lg md:text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
-            Bergabunglah dengan ribuan pengguna yang telah beralih ke cara parkir yang lebih cerdas, aman, dan tanpa hambatan.
+            Join thousands of users who have switched to a smarter, safer, and seamless way of parking.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link 
               to="/register"
               className="w-full sm:w-auto px-12 py-6 rounded-2xl bg-indigo-600 text-white font-black text-xl shadow-2xl shadow-indigo-500/20 hover:bg-indigo-700 hover:-translate-y-1 transition-all"
             >
-              Daftar Sekarang
+              Join Now
             </Link>
             <button 
               onClick={() => navigate('/parking')}
               className="w-full sm:w-auto px-12 py-6 rounded-2xl bg-slate-800 text-white font-black text-xl border border-slate-700 hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
             >
-              Cek Lokasi
+              Find Slots
+              <HiArrowRight className="w-6 h-6 text-indigo-400" />
             </button>
           </div>
         </div>
