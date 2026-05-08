@@ -21,6 +21,7 @@ import liveRoutes from './src/routes/live.routes.js';
 import ingestionRoutes from './src/routes/ingestion.routes.js';
 import profileRoutes from './src/routes/profile.routes.js';
 import adminRoutes from './src/routes/admin.routes.js';
+import reservationRoutes from './src/routes/reservation.routes.js';
 
 // Middlewares
 import { errorHandler, notFoundHandler } from './src/middlewares/error.js';
@@ -46,6 +47,7 @@ app.use('/api/live', liveRoutes);
 app.use('/api/ingest', ingestionRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', reservationRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -77,7 +79,12 @@ async function startServer() {
     }
 
     // Initialize MongoDB connection
-    await connectMongo();
+    try {
+      await connectMongo();
+      console.log('✅ MongoDB connected successfully');
+    } catch (error) {
+      console.warn('⚠️ MongoDB connection failed (optional):', error.message);
+    }
 
     // Initialize Redis connection
     connectRedis();

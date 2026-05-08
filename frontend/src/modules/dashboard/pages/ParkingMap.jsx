@@ -6,7 +6,8 @@ import ParkingSlot from '../../../components/ParkingSlot';
 import SlotModal from '../../../components/SlotModal';
 import { 
   HiMap, HiInbox, HiHashtag, HiCheckCircle, 
-  HiMinusCircle, HiBookmark, HiBan, HiChartPie 
+  HiMinusCircle, HiBookmark, HiBan, HiChartPie,
+  HiRefresh, HiViewGrid, HiClipboardList, HiInformationCircle
 } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 
@@ -22,6 +23,9 @@ export default function ParkingMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [viewMode, setViewMode] = useState('map'); // 'map' or 'operator'
+  const [allReservations, setAllReservations] = useState([]);
+  const [resLoading, setResLoading] = useState(false);
 
   // ── Fetch slots ───────────────────────────────────────────
   const fetchSlots = useCallback(async () => {
@@ -43,9 +47,60 @@ export default function ParkingMap() {
     }
   }, [zone, vehicleType, refreshKey]);
 
+  const fetchReservations = useCallback(async () => {
+    try {
+      setResLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/reservations/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setAllReservations(data.data);
+    } catch (err) {
+      console.error('Fetch reservations error:', err);
+    } finally {
+      setResLoading(false);
+    }
+  }, []);
+  
+  const handleQuickStatusUpdate = async (slotId, newStatus, reservationId = null) => {
+    // Optimistically update local state for immediate feedback
+    setAllReservations(prev => prev.map(res => 
+      res.id === reservationId ? { ...res, slot_status: newStatus } : res
+    ));
+
+    try {
+      // 1. Update Slot Status
+      await parkingApi.updateSlot(slotId, { status: newStatus });
+      
+      // 2. If it's a reservation row and we set to 'occupied', perform a check-in if it was active
+      if (reservationId && newStatus === 'occupied') {
+        const token = localStorage.getItem('token');
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/reservations/${reservationId}/checkin`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      // Silent refresh to ensure sync with server without flicker
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/reservations/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setAllReservations(data.data);
+      fetchSlots(); // Background fetch slots
+    } catch (err) {
+      console.error('Quick update error:', err);
+      // Revert or show error if needed
+      fetchReservations(); 
+    }
+  };
+
   useEffect(() => {
-    fetchSlots();
-  }, [fetchSlots]);
+    if (viewMode === 'map') fetchSlots();
+    else fetchReservations();
+  }, [viewMode, fetchSlots, fetchReservations]);
 
   // ── Client-side Filtered Slots ─────────────────────────────
   const filteredSlots = useMemo(() => {
@@ -146,6 +201,28 @@ export default function ParkingMap() {
             <p className="text-gray-500 text-sm">{t('parking_map.desc')}</p>
           </div>
         </div>
+
+        {/* Mode Toggle Switch */}
+        <div className="flex p-1 bg-gray-100 rounded-xl w-fit">
+          <button
+            onClick={() => setViewMode('map')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'map' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <HiMap className="w-4 h-4" />
+            VISUAL MAP
+          </button>
+          <button
+            onClick={() => setViewMode('operator')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'operator' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <HiInbox className="w-4 h-4" />
+            OPERATOR PANEL
+          </button>
+        </div>
       </div>
 
       {/* Stats Bar */}
@@ -168,33 +245,102 @@ export default function ParkingMap() {
         setSearch={setSearch}
       />
 
-      {/* Legend */}
-      <Legend />
+      {/* Main Content Area */}
+      {viewMode === 'map' ? (
+        <>
+          {/* Legend */}
+          <Legend />
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* No results */}
-      {!loading && slots.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="flex justify-center mb-3">
-            <HiInbox className="w-12 h-12 text-gray-200" />
+          {/* Zone Groups */}
+          {Object.entries(groupedByZone)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([zoneName, zoneSlots]) => (
+              <ZoneSection key={zoneName} zone={zoneName} slots={zoneSlots} onSlotClick={handleSlotClick} />
+            ))}
+        </>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+              <HiInbox className="text-primary-600" /> Recent Reservations
+            </h3>
+            <button 
+              onClick={fetchReservations}
+              disabled={resLoading}
+              className="p-2 rounded-xl bg-gray-50 text-gray-500 hover:bg-primary-50 hover:text-primary-600 transition-all border border-gray-100 shadow-sm disabled:opacity-50 group"
+              title="Refresh Data"
+            >
+              <HiRefresh className={`w-5 h-5 ${resLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+            </button>
           </div>
-          <p className="text-gray-600 font-medium">{t('dashboard.no_data')}</p>
-          <p className="text-gray-400 text-sm mt-1">{t('live_camera.no_sessions')}</p>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 font-bold uppercase text-[10px] tracking-widest">
+                <tr>
+                  <th className="px-6 py-4">Slot</th>
+                  <th className="px-6 py-4">Vehicle</th>
+                  <th className="px-6 py-4">License Plate</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Time</th>
+                  <th className="px-6 py-4 text-center">Slot Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {resLoading ? (
+                  <tr><td colSpan="5" className="px-6 py-10 text-center text-gray-400">Loading reservations...</td></tr>
+                ) : allReservations.length === 0 ? (
+                  <tr><td colSpan="5" className="px-6 py-10 text-center text-gray-400">No recent reservations.</td></tr>
+                ) : allReservations.map(res => (
+                  <tr key={res.id} className="hover:bg-gray-50/50">
+                    <td className="px-6 py-4 font-bold text-gray-900">ZONA {res.zone} - {res.slot_number}</td>
+                    <td className="px-6 py-4 capitalize text-gray-600">{res.vehicle_type}</td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 rounded font-mono font-bold text-xs">{res.license_plate}</span></td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        res.status === 'active' ? 'bg-blue-100 text-blue-600' :
+                        res.status === 'completed' ? 'bg-green-100 text-green-600' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {res.status === 'active' ? 'Reserved' : res.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-400 text-xs">
+                      {new Date(res.created_at).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="relative inline-block w-full max-w-[120px]">
+                        <select
+                          value={res.slot_status || (res.status === 'active' ? 'reserved' : res.status === 'completed' ? 'occupied' : 'empty')}
+                          onChange={(e) => handleQuickStatusUpdate(res.slot_id, e.target.value, res.id)}
+                          className={`w-full appearance-none px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer shadow-sm hover:shadow-md focus:ring-2 focus:ring-offset-1 outline-none
+                            ${res.slot_status === 'empty' ? 'bg-emerald-50 border-emerald-100 text-emerald-600 focus:ring-emerald-400' : 
+                              res.slot_status === 'occupied' ? 'bg-rose-50 border-rose-100 text-rose-600 focus:ring-rose-400' :
+                              res.slot_status === 'reserved' ? 'bg-indigo-50 border-indigo-100 text-indigo-600 focus:ring-indigo-400' :
+                              res.slot_status === 'offline' ? 'bg-amber-50 border-amber-100 text-amber-600 focus:ring-amber-400' :
+                              'bg-slate-50 border-slate-200 text-slate-600 focus:ring-slate-400'}
+                          `}
+                        >
+                          <option value="empty">Empty</option>
+                          <option value="occupied">Occupied</option>
+                          <option value="reserved">Reserved</option>
+                          <option value="offline">Offline</option>
+                          <option value="error">Error</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-
-      {/* Zone Groups */}
-      {Object.entries(groupedByZone)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([zoneName, zoneSlots]) => (
-          <ZoneSection key={zoneName} zone={zoneName} slots={zoneSlots} onSlotClick={handleSlotClick} />
-        ))}
 
       {/* Slot Detail Modal */}
       {selectedSlot && (

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProfileLayout from './layouts/ProfileLayout';
-import Login from './modules/public/pages/Login';
 import Dashboard from './modules/dashboard/pages/Dashboard';
 import LiveCamera from './modules/dashboard/pages/LiveCamera';
 import ParkingMap from './modules/dashboard/pages/ParkingMap';
@@ -17,6 +16,12 @@ import UserManagement from './modules/profile/pages/UserManagement';
 import Security from './modules/profile/pages/Security';
 import Personalization from './modules/profile/pages/Personalization';
 import Sessions from './modules/profile/pages/Sessions';
+
+// Public Pages
+import LandingPage from './modules/public/pages/LandingPage';
+import ViewerAuth from './modules/public/pages/ViewerAuth';
+import AdminLogin from './modules/public/pages/AdminLogin';
+import SlotViewer from './modules/public/pages/SlotViewer';
 
 function NotFound() {
   const { t } = useTranslation();
@@ -36,8 +41,12 @@ function NotFound() {
 function App() {
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/login" element={<Login />} />
+      {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/register" element={<ViewerAuth />} />
+      <Route path="/login" element={<ViewerAuth />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/parking" element={<SlotViewer />} />
 
       {/* Protected — wrapped in DashboardLayout */}
       <Route
@@ -156,8 +165,7 @@ function App() {
         }
       />
 
-      {/* Redirects */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Fallback */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

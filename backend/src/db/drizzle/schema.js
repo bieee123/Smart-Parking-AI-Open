@@ -99,8 +99,24 @@ export const analysisHistory = pgTable('ai_analysis_history', {
 export const userActivities = pgTable('user_activities', {
   id: uuid('id').defaultRandom().primaryKey(),
   user_id: uuid('user_id').references(() => users.id).notNull(),
-  action: varchar('action', { length: 50 }).notNull(), // login, password_change, profile_update
-  device_info: text('device_info'), // e.g. Chrome on Windows
+  action: varchar('action', { length: 50 }).notNull(),
+  device_info: text('device_info'),
   ip_address: varchar('ip_address', { length: 45 }),
   created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Reservations table
+export const reservations = pgTable('reservations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  user_id: uuid('user_id').references(() => users.id).notNull(),
+  slot_id: uuid('slot_id').references(() => parkingSlots.id).notNull(),
+  license_plate: varchar('license_plate', { length: 20 }).notNull(),
+  vehicle_type: varchar('vehicle_type', { length: 20 }).notNull().default('car'), // car, truck, motorcycle
+  duration_hours: integer('duration_hours').notNull().default(1),
+  start_time: timestamp('start_time').defaultNow().notNull(),
+  end_time: timestamp('end_time').notNull(),
+  estimated_fee: integer('estimated_fee').default(0),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, completed, cancelled, expired
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
 });

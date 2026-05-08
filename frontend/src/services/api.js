@@ -119,6 +119,19 @@ export const api = {
     getHistory: () => request('/ai/analysis/history'),
     saveHistory: (data) => request('/ai/analysis/history', { method: 'POST', body: JSON.stringify(data) }),
   },
+
+  // Public (no auth needed)
+  public: {
+    getSlots: () => request('/public/slots'),
+    getTariff: (vehicleType, hours) => request(`/reservations/tariff?vehicle_type=${vehicleType}&duration_hours=${hours}`),
+  },
+
+  // Reservations (viewer auth)
+  reservations: {
+    create: (data) => request('/reservations', { method: 'POST', body: JSON.stringify(data) }),
+    getMy: () => request('/reservations/my'),
+    cancel: (id) => request(`/reservations/${id}`, { method: 'DELETE' }),
+  },
 };
 
 
