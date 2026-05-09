@@ -31,7 +31,8 @@
     "system": "Sistem",
     "not_found": "Halaman tidak ditemukan",
     "go_to_dashboard": "Kembali ke Dasbor",
-    "back_to_dashboard": "Kembali ke Dasbor"
+    "back_to_dashboard": "Kembali ke Dasbor",
+    "back_to_slots": "Kembali ke Denah Parkir"
   },
   "personalization": {
     "title": "Personalisasi",
@@ -271,12 +272,12 @@
     "new_password": "Kata Sandi Baru",
     "confirm_new_password": "Konfirmasi Kata Sandi Baru",
     "update_password": "Perbarui Kata Sandi",
-    "two_factor": "Autentikasi Dua Faktor",
-    "recommended": "Disarankan",
+    "two_factor": "Autentikasi Dua Faktor (2FA)",
+    "recommended": "Direkomendasikan",
     "auth_app": "Aplikasi Autentikator",
-    "auth_desc": "Lindungi akun Anda dengan kode verifikasi sekunder yang dihasilkan oleh aplikasi seperti Google Authenticator.",
+    "auth_desc": "Gunakan aplikasi seperti Google Authenticator atau Microsoft Authenticator untuk menghasilkan kode 2FA yang aman.",
     "setup_auth": "Siapkan Autentikator",
-    "recent_activity": "Aktivitas Terkini",
+    "recent_activity": "Aktivitas Keamanan Terbaru",
     "no_activity": "Aktivitas tidak ditemukan",
     "view_all_logs": "Lihat Semua Log",
     "danger_zone": "Zona Bahaya",

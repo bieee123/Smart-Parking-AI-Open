@@ -1,234 +1,392 @@
-"""video.py — Video file upload dan analisis frame-by-frame."""
+"""
+video.py — Production Video File Upload & Background AI Analysis.
+
+V2.0 Changes:
+  - C4: REMOVED np.random.randint() fake slot assignment
+  - C4: Real slot association via SlotManager
+  - H6: True async via run_in_executor (no more blocking event loop)
+  - C5: job_store backed by Redis when available, in-memory fallback
+  - Security: file size validation, type checking, path sanitization
+  - Structured per-job logging
+"""
 import os
 import uuid
 import asyncio
 import json
-import shutil
-import tempfile
+import logging
+import time
 from datetime import datetime
+from typing import Optional
+
 import cv2
 import numpy as np
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse, JSONResponse
 
+from app.config import (
+    BACKEND_URL,
+    BACKEND_SYNC_INTERVAL,
+    VIDEO_MAX_SIZE_MB,
+    VIDEO_JOB_TTL_SECONDS,
+    VIDEO_SAMPLE_FPS,
+    REDIS_ENABLED,
+    REDIS_URL,
+)
+
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Video Analysis"])
 
-# In-memory job store: { job_id: { progress, result, status, created_at } }
-job_store: dict = {}
-
+# ── Model imports ─────────────────────────────────────────────────────────────
 try:
     from app.services.inference_engine import inference_engine as _ie
     from app.services.ensemble_engine import EnsembleEngine
     _ensemble = EnsembleEngine(_ie)
 except Exception as _e:
-    print(f"[Video] EnsembleEngine unavailable: {_e}")
+    logger.error("[Video] EnsembleEngine unavailable: %s", _e)
     _ensemble = None
 
+try:
+    from app.services.slot_manager import slot_manager
+    _slot_manager_available = True
+except Exception:
+    slot_manager = None
+    _slot_manager_available = False
+
+# ── Job Storage (Redis-backed with in-memory fallback) ────────────────────────
+class JobStore:
+    """Abstraction over Redis/in-memory job storage."""
+
+    def __init__(self):
+        self._redis = None
+        self._local: dict = {}
+
+        if REDIS_ENABLED:
+            try:
+                import redis
+                self._redis = redis.from_url(REDIS_URL, decode_responses=True)
+                self._redis.ping()
+                logger.info("[JobStore] ✅ Redis connected: %s", REDIS_URL)
+            except Exception as e:
+                logger.warning("[JobStore] Redis unavailable (%s) — using in-memory.", e)
+                self._redis = None
+
+    def set(self, job_id: str, data: dict, ttl: int = VIDEO_JOB_TTL_SECONDS):
+        if self._redis:
+            self._redis.setex(f"job:{job_id}", ttl, json.dumps(data))
+        else:
+            data["_created_at"] = time.time()
+            self._local[job_id] = data
+
+    def get(self, job_id: str) -> Optional[dict]:
+        if self._redis:
+            raw = self._redis.get(f"job:{job_id}")
+            return json.loads(raw) if raw else None
+        return self._local.get(job_id)
+
+    def update(self, job_id: str, patch: dict, ttl: int = VIDEO_JOB_TTL_SECONDS):
+        current = self.get(job_id) or {}
+        current.update(patch)
+        self.set(job_id, current, ttl)
+
+    def exists(self, job_id: str) -> bool:
+        if self._redis:
+            return bool(self._redis.exists(f"job:{job_id}"))
+        return job_id in self._local
+
+    def cleanup_local(self):
+        """Remove local in-memory jobs older than TTL."""
+        now = time.time()
+        stale = [
+            k for k, v in self._local.items()
+            if now - v.get("_created_at", now) > VIDEO_JOB_TTL_SECONDS
+        ]
+        for k in stale:
+            del self._local[k]
+
+
+job_store = JobStore()
+
+
+# ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/traffic/upload")
 async def upload_video(background_tasks: BackgroundTasks, video: UploadFile = File(...)):
-    """Upload a video file for background AI analysis. Returns a job_id for tracking."""
+    """
+    Upload a video file for background AI analysis.
+    Returns a job_id for progress tracking via SSE.
+    """
+    # Security: validate file type
     filename = video.filename or ""
-    if not filename.lower().endswith(('.mp4', '.avi', '.mov')):
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": "Hanya mendukung .mp4, .avi, .mov"},
-        )
+    if not filename.lower().endswith((".mp4", ".avi", ".mov")):
+        raise HTTPException(status_code=400, detail="Only .mp4, .avi, .mov supported.")
 
-    _cleanup_old_jobs()
+    # Security: validate file size
+    max_bytes = VIDEO_MAX_SIZE_MB * 1024 * 1024
+    chunk_size = 8192
+    total_read = 0
+    chunks = []
+
+    while True:
+        chunk = await video.read(chunk_size)
+        if not chunk:
+            break
+        total_read += len(chunk)
+        if total_read > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File exceeds {VIDEO_MAX_SIZE_MB}MB limit.",
+            )
+        chunks.append(chunk)
+
+    content = b"".join(chunks)
+
+    # Save to temp file (no path traversal risk — uuid-based name)
     job_id = str(uuid.uuid4())
-
-    # Save to a temporary file using chunks to avoid OOM
-    import shutil
-    import tempfile
-    tmp_dir = tempfile.gettempdir()
-    tmp_path = os.path.join(tmp_dir, f"sp_{job_id}.mp4")
+    tmp_dir = os.environ.get("TEMP", "/tmp")
+    # Sanitize: only alphanumeric + dash in job_id
+    safe_id = "".join(c for c in job_id if c.isalnum() or c == "-")
+    tmp_path = os.path.join(tmp_dir, f"sp_{safe_id}.mp4")
 
     try:
-        with open(tmp_path, "wb") as buffer:
-            # Stream the file to disk
-            shutil.copyfileobj(video.file, buffer)
+        with open(tmp_path, "wb") as f:
+            f.write(content)
     except Exception as e:
-        return JSONResponse(status_code=500, content={"success": False, "error": f"Gagal menyimpan file: {str(e)}"})
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
-    try:
-        loop = asyncio.get_event_loop()
-        created_at = loop.time()
-    except Exception:
-        created_at = 0.0
+    # Initialize job record
+    job_store.set(job_id, {
+        "progress": 5,
+        "status":   "queued",
+        "result":   None,
+        "error":    None,
+    })
 
-    job_store[job_id] = {
-        "progress": 5, # Start with 5% to show immediate responsiveness
-        "result": None,
-        "status": "queued",
-        "created_at": created_at,
-    }
-    background_tasks.add_task(_process_video, job_id, tmp_path)
+    background_tasks.add_task(_process_video_background, job_id, tmp_path)
+    logger.info("[Video] Job %s queued for: %s", job_id[:8], filename)
+
     return {"success": True, "data": {"job_id": job_id}}
 
 
 @router.get("/traffic/process-status")
 async def process_status(job_id: str):
-    """SSE stream for job progress. Emits progress/result/status until done."""
-    if job_id not in job_store:
-        return JSONResponse(
-            status_code=404,
-            content={"success": False, "error": "Job tidak ditemukan"},
-        )
+    """SSE stream for video processing progress."""
+    # Validate job_id format (prevent path injection)
+    if not job_id or len(job_id) > 50 or not all(c.isalnum() or c == "-" for c in job_id):
+        raise HTTPException(status_code=400, detail="Invalid job_id.")
+
+    if not job_store.exists(job_id):
+        raise HTTPException(status_code=404, detail="Job not found.")
 
     async def stream():
         while True:
-            job = job_store.get(job_id, {})
+            job = job_store.get(job_id)
+            if not job:
+                yield f"data: {json.dumps({'status': 'not_found'})}\n\n"
+                break
+
             payload = {
                 "progress": job.get("progress", 0),
-                "result": job.get("result"),
-                "status": job.get("status", "unknown"),
+                "result":   job.get("result"),
+                "status":   job.get("status", "unknown"),
+                "error":    job.get("error"),
             }
             yield f"data: {json.dumps(payload)}\n\n"
+
             if job.get("progress", 0) >= 100 or job.get("status") in ("done", "error"):
                 break
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.8)
 
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
-async def _process_video(job_id: str, file_path: str):
-    """Background task: frame-by-frame ONNX analysis of uploaded video."""
-    job_store[job_id]["status"] = "processing"
-    total_v, total_viol, conf_sum, det_count, frames_done = 0, 0, 0.0, 0, 0
+# ── Background Video Processor ────────────────────────────────────────────────
+
+async def _process_video_background(job_id: str, file_path: str):
+    """
+    Background task: offloads CPU-intensive processing to thread pool
+    so the FastAPI event loop is never blocked.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _sync_process_video, job_id, file_path)
+    except Exception as e:
+        logger.error("[Video:%s] Unexpected error: %s", job_id[:8], e)
+        job_store.update(job_id, {"status": "error", "error": str(e), "progress": 100})
+    finally:
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+
+
+def _sync_process_video(job_id: str, file_path: str):
+    """
+    Synchronous video processor (runs in thread pool).
+    C4 FIX: Uses SlotManager for real slot association (no fake random slots).
+    """
+    short_id = job_id[:8]
+    logger.info("[Video:%s] Processing started: %s", short_id, file_path)
+
+    total_v    = 0
+    total_viol = 0
+    frames_done = 0
+    sample_boxes = []
+    plates_seen: dict = {}     # track_id → plate_number
+    slot_occupancy: dict = {}  # slot_id → occupancy dict
+    last_sync_time = time.time()
+
     try:
         cap = cv2.VideoCapture(file_path)
         if not cap.isOpened():
-            raise ValueError("Tidak bisa buka file video")
+            raise ValueError("Cannot open video file.")
 
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
-        fps = cap.get(cv2.CAP_PROP_FPS) or 25
-        interval = max(1, int(fps))
+        source_fps   = cap.get(cv2.CAP_PROP_FPS) or 25.0
+        # Sample at VIDEO_SAMPLE_FPS (default 2fps), but don't exceed source FPS
+        interval = max(1, int(source_fps / min(VIDEO_SAMPLE_FPS, source_fps)))
+
+        logger.info(
+            "[Video:%s] %d frames @ %.0ffps → sampling every %d frames",
+            short_id, total_frames, source_fps, interval,
+        )
+
         idx = 0
-
-        sample_boxes = []
-        last_sync_idx = 0
-        sync_interval = int(fps * 5) # Sync every 5 seconds of video
-
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
-            
+
+            # Update progress every frame for smooth SSE progress bar
+            progress = min(98, int((idx / total_frames) * 100))
+            job_store.update(job_id, {"progress": progress, "status": "processing"})
+
             if idx % interval == 0 and _ensemble is not None:
                 try:
-                    # Use ensemble for full analysis
                     res = _ensemble.analyze_frame(frame)
-                    v_count = res.get("vehicle_count", 0)
+                    v_count    = res.get("vehicle_count", 0)
                     viol_count = len(res.get("violations", []))
-                    
-                    total_v += v_count
+                    boxes      = res.get("boxes", [])
+
+                    total_v    += v_count
                     total_viol += viol_count
-                    
-                    if not sample_boxes and res.get("boxes"):
-                        sample_boxes = res.get("boxes")
-                        
                     frames_done += 1
 
-                    # B3: Incremental Sync to Backend (every 5s of video)
-                    if idx - last_sync_idx >= sync_interval:
-                        try:
-                            import requests as req
-                            from datetime import datetime
-                            backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-                            
-                            dens, _ = _ensemble._assess(v_count)
-                            ingest_payload = {
-                                "vehicle_count": v_count,
-                                "density_level": dens,
-                                "camera_id": f"VIDEO_{job_id[:8]}",
-                                "violations": [{"type": "illegal_parking", "confidence": 0.8} for _ in range(viol_count)],
-                                "timestamp": datetime.now().isoformat()
-                            }
-                            req.post(f"{backend_url}/api/ingest/traffic", json=ingest_payload, timeout=2)
-                            
-                            # B4: Update real parking slots (PostgreSQL) for Dashboard/Map
-                            try:
-                                # Find an available slot to "occupy" in the DB
-                                # For this demo, we use slot numbers A1-A10
-                                slot_num = f"A{np.random.randint(1, 11)}"
-                                occ_payload = {
-                                    "slots": [{
-                                        "slot_number": slot_num,
-                                        "is_occupied": True,
-                                        "license_plate": res.get("last_plate", "UNKNOWN"),
-                                        "vehicle_type": res.get("vehicle_types", {}).get("car", 0) > 0 and "car" or "motorbike"
-                                    }]
-                                }
-                                req.post(f"{backend_url}/api/ingest/occupancy", json=occ_payload, timeout=2)
-                            except Exception: pass
+                    if not sample_boxes and boxes:
+                        sample_boxes = boxes
 
-                            last_sync_idx = idx
-                            
-                            # Update intermediate result for SSE
-                            job_store[job_id]["result"] = {
-                                "total_vehicles": v_count,
-                                "avg_density": dens,
-                                "last_plate": res.get("last_plate", "N/A"),
-                                "is_intermediate": True
-                            }
-                        except Exception: pass
+                    # Collect plates from multi-LPR
+                    for plate_info in res.get("plates", []):
+                        pn = plate_info.get("plate_number", "UNREADABLE")
+                        if pn and pn != "UNREADABLE":
+                            tid = plate_info.get("track_id")
+                            if tid:
+                                plates_seen[tid] = pn
 
-                except Exception:
-                    pass
-            
+                    # C4 FIX: Real slot association via SlotManager
+                    if _slot_manager_available and slot_manager and slot_manager.slot_count > 0:
+                        slot_occupancy = slot_manager.associate(boxes, plate_map=plates_seen)
+
+                        # Sync slot occupancy to backend
+                        now = time.time()
+                        if now - last_sync_time >= BACKEND_SYNC_INTERVAL:
+                            _sync_occupancy_to_backend(slot_occupancy, short_id)
+                            last_sync_time = now
+
+                    # Periodic traffic sync
+                    _sync_traffic_to_backend(res, short_id)
+
+                    # Update intermediate result for SSE
+                    job_store.update(job_id, {
+                        "result": {
+                            "total_vehicles": v_count,
+                            "avg_density":    res.get("density_level", "low"),
+                            "last_plate":     res.get("last_plate", "N/A"),
+                            "plates":         res.get("plates", []),
+                            "is_intermediate": True,
+                        }
+                    })
+
+                except Exception as e:
+                    logger.warning("[Video:%s] Frame %d analysis error: %s", short_id, idx, e)
+
             idx += 1
-            job_store[job_id]["progress"] = min(99, int((idx / total_frames) * 100))
-            await asyncio.sleep(0)
 
         cap.release()
 
-        # Final aggregate result
-        avg_v = total_v // max(1, frames_done)
+        # Final aggregate
+        avg_v   = total_v // max(1, frames_done)
         density = "high" if avg_v > 15 else "medium" if avg_v > 7 else "low"
 
-        result = {
-            "total_vehicles": avg_v,
-            "violations": total_viol,
-            "frames_processed": frames_done,
-            "boxes": sample_boxes,
-            "avg_density": density,
-            "summary": f"Video Analysis Complete: {avg_v} avg vehicles, {total_viol} violations."
-        }
-        job_store[job_id].update({"progress": 100, "result": result, "status": "done"})
+        # Slot summary for final result
+        occ_summary = {}
+        if _slot_manager_available and slot_manager:
+            occ_summary = slot_manager.occupancy_summary()
 
-        # Final Sync
-        try:
-            import requests as req
-            from datetime import datetime
-            backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-            req.post(f"{backend_url}/api/ingest/traffic", json={
-                "vehicle_count": avg_v,
-                "density_level": density,
-                "camera_id": f"VIDEO_FINAL_{job_id[:8]}",
-                "violations": [{"type": "illegal_parking", "confidence": 0.8} for _ in range(total_viol)],
-                "timestamp": datetime.now().isoformat()
-            }, timeout=2)
-        except Exception: pass
+        final_result = {
+            "total_vehicles":  avg_v,
+            "violations":      total_viol,
+            "frames_processed": frames_done,
+            "boxes":           sample_boxes,
+            "avg_density":     density,
+            "occupancy":       occ_summary,
+            "plates_detected": list(set(plates_seen.values())),
+            "summary": (
+                f"Analysis Complete: avg {avg_v} vehicles, "
+                f"{total_viol} violations, "
+                f"{occ_summary.get('occupied_slots', 0)}/{occ_summary.get('total_slots', 0)} slots occupied."
+            ),
+        }
+
+        job_store.update(job_id, {"progress": 100, "result": final_result, "status": "done"})
+        logger.info("[Video:%s] ✅ Processing complete. %d frames analyzed.", short_id, frames_done)
 
     except Exception as e:
-        job_store[job_id]["status"] = "error"
-        job_store[job_id]["error"] = str(e)
-    finally:
-        # Cleanup video file
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except: pass
+        logger.error("[Video:%s] ❌ Processing failed: %s", short_id, e, exc_info=True)
+        job_store.update(job_id, {"status": "error", "error": str(e), "progress": 100})
 
 
-def _cleanup_old_jobs():
-    """Remove jobs older than 1 hour to prevent memory leaks."""
+def _sync_traffic_to_backend(result: dict, job_tag: str):
+    """Fire-and-forget traffic sync (non-blocking)."""
     try:
-        loop = asyncio.get_event_loop()
-        now = loop.time()
-        stale = [k for k, v in job_store.items() if now - v.get("created_at", now) > 3600]
-        for jid in stale:
-            del job_store[jid]
+        import requests
+        violations_fmt = [
+            {"type": "illegal_parking", "confidence": float(v[4]) if len(v) > 4 else 0.8}
+            for v in result.get("violations", [])
+        ]
+        requests.post(
+            f"{BACKEND_URL}/api/ingest/traffic",
+            json={
+                "vehicle_count": result.get("vehicle_count", 0),
+                "density_level": result.get("density_level", "low"),
+                "camera_id":     f"VIDEO_{job_tag}",
+                "violations":    violations_fmt,
+                "timestamp":     datetime.now().isoformat(),
+            },
+            timeout=1.5,
+        )
+    except Exception:
+        pass
+
+
+def _sync_occupancy_to_backend(slot_occupancy: dict, job_tag: str):
+    """Sync real slot occupancy (from SlotManager) to backend."""
+    if not slot_occupancy:
+        return
+    try:
+        import requests
+        slots_payload = []
+        for slot_id, slot_data in slot_occupancy.items():
+            slots_payload.append({
+                "slot_number":  slot_id,
+                "is_occupied":  slot_data.get("is_occupied", False),
+                "license_plate": slot_data.get("license_plate", "UNKNOWN"),
+                "vehicle_type": slot_data.get("occupant_type", "car"),
+            })
+        requests.post(
+            f"{BACKEND_URL}/api/ingest/occupancy",
+            json={"slots": slots_payload},
+            timeout=1.5,
+        )
     except Exception:
         pass

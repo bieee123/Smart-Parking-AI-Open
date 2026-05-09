@@ -1,18 +1,39 @@
-fastapi>=0.115.0
-uvicorn[standard]>=0.30.0
+# ── Smart Parking AI Service — Requirements v2.0 ──────────────────────────────
+# Phase 1-4 production dependencies
+
+# ── Core Framework ────────────────────────────────────────────────────────────
+fastapi>=0.136.0
+uvicorn[standard]>=0.46.0
+pydantic>=2.0.0
 python-dotenv>=1.0.0
-opencv-python>=4.10.0
-numpy>=1.26.0
-pillow>=10.4.0
-onnxruntime>=1.18.0
-onnx>=1.14.0
-scikit-learn>=1.5.0
-xgboost>=2.0.0
-pydantic>=2.8.0
 python-multipart>=0.0.9
-ultralytics>=8.0.0
-requests>=2.30.0
-pandas>=2.0.0
-joblib>=1.3.0
-easyocr>=1.7.0
-yt-dlp>=2024.11.18
+
+# ── AI / Computer Vision ──────────────────────────────────────────────────────
+ultralytics>=8.4.0          # YOLOv8 ONNX inference
+onnxruntime>=1.18.0         # CPU inference (use onnxruntime-gpu for CUDA)
+# onnxruntime-gpu>=1.18.0   # Uncomment for GPU deployment
+opencv-python-headless>=4.13.0   # Headless for server (no GUI)
+easyocr>=1.7.0              # License plate OCR
+
+# ── Phase 2: Accuracy ─────────────────────────────────────────────────────────
+# (all above, no new additions)
+
+# ── Phase 3: Parking Intelligence ─────────────────────────────────────────────
+shapely>=2.1.0               # Polygon point-in-polygon for slot association
+
+# ── Phase 4: Scalability ──────────────────────────────────────────────────────
+supervision>=0.21.0          # ByteTrack multi-object tracking wrapper
+redis>=5.0.0                 # Optional: Redis-backed job store (set REDIS_URL in .env)
+# If Redis not available, in-memory fallback is used automatically
+
+# ── Utility ───────────────────────────────────────────────────────────────────
+numpy>=2.0.0
+requests>=2.31.0
+yt-dlp>=2026.1.0             # YouTube/CCTV stream URL resolution
+
+# ── Optional: GPU performance ─────────────────────────────────────────────────
+# torch>=2.0.0               # Uncomment if using GPU-accelerated OCR
+# torchvision>=0.15.0        # Uncomment for advanced NMS
+
+# ── Optional: Advanced ────────────────────────────────────────────────────────
+# Pillow>=10.0.0             # Required if using torchvision transforms

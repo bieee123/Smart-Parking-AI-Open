@@ -26,6 +26,11 @@ export const users = pgTable('users', {
   role: varchar('role', { length: 20 }).notNull().default('user'), // admin, operator, viewer
   language: varchar('language', { length: 10 }).notNull().default('en'), // en, id
   is_active: boolean('is_active').notNull().default(true),
+  two_factor_enabled: boolean('two_factor_enabled').notNull().default(false),
+  two_factor_secret: text('two_factor_secret'),
+  two_factor_method: varchar('two_factor_method', { length: 20 }).notNull().default('totp'), // 'totp' or 'email'
+  two_factor_email_code: varchar('two_factor_email_code', { length: 10 }),
+  two_factor_email_expires: timestamp('two_factor_email_expires'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -117,6 +122,16 @@ export const reservations = pgTable('reservations', {
   end_time: timestamp('end_time').notNull(),
   estimated_fee: integer('estimated_fee').default(0),
   status: varchar('status', { length: 20 }).notNull().default('active'), // active, completed, cancelled, expired
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// System Settings table (for dynamic config like SMTP)
+export const systemSettings = pgTable('system_settings', {
+  id: serial('id').primaryKey(),
+  key: varchar('key', { length: 100 }).notNull().unique(),
+  value: text('value').notNull(),
+  description: text('description'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });

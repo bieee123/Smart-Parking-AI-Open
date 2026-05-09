@@ -24,13 +24,36 @@ export function useAuth() {
 
   const login = useCallback(async (usernameOrEmail, password) => {
     const response = await api.auth.login({ username: usernameOrEmail, password });
-    // Backend returns: { success: true, data: { token, id, username, email, role } }
+    
+    // If 2FA is required, return special status and mfaToken
+    if (response.requires2FA) {
+      return { 
+        requires2FA: true, 
+        mfaToken: response.mfaToken,
+        mfaMethod: response.mfaMethod || 'totp'
+      };
+    }
+
     const { token, ...userData } = response.data;
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(userData));
     setUser(userData);
     
-    // Set language from user data
+    if (userData.language) {
+      i18n.changeLanguage(userData.language);
+    }
+    
+    return userData;
+  }, []);
+
+  const verifyMfa = useCallback(async (mfaToken, token) => {
+    const response = await api.auth.authenticate2FA(token, mfaToken);
+    
+    const { token: finalToken, ...userData } = response.data;
+    localStorage.setItem(TOKEN_KEY, finalToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    setUser(userData);
+    
     if (userData.language) {
       i18n.changeLanguage(userData.language);
     }
@@ -54,6 +77,7 @@ export function useAuth() {
   return {
     user,
     login,
+    verifyMfa,
     logout,
     getToken,
     isAuthenticated,

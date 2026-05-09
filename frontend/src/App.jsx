@@ -52,7 +52,7 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={['admin', 'operator', 'viewer']}>
+          <ProtectedRoute allowedRoles={['admin', 'operator']}>
             <DashboardLayout>
               <Dashboard />
             </DashboardLayout>
@@ -157,7 +157,7 @@ function App() {
       <Route
         path="/profile/sessions"
         element={
-          <ProtectedRoute allowedRoles={['admin', 'operator']}>
+          <ProtectedRoute allowedRoles={['admin', 'operator', 'viewer']}>
             <ProfileLayout>
               <Sessions />
             </ProfileLayout>

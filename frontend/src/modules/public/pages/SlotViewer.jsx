@@ -226,7 +226,7 @@ export default function SlotViewer() {
           {/* Dashboard Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                 <FaParking className="text-indigo-600" /> Select Parking Slot
               </h1>
               <p className="text-slate-500 mt-2 font-medium">Real-time slot availability monitoring from SmartPark AI system.</p>
@@ -295,22 +295,23 @@ export default function SlotViewer() {
             {/* Main Grid Container */}
             <div className="flex-1 w-full">
               <div className="bg-white rounded-[32px] p-8 border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="flex items-center gap-2 font-black text-slate-900 uppercase tracking-widest text-sm">
-                    <HiViewGrid className="text-indigo-600 w-5 h-5" /> Parking Layout
+                <div className="flex items-center justify-between mb-8 gap-4">
+                  <h2 className="flex items-center gap-2 font-black text-slate-900 uppercase tracking-widest text-sm whitespace-nowrap">
+                    <HiViewGrid className="text-indigo-600 w-5 h-5" /> 
+                    <span className="hidden sm:inline">Parking Layout</span>
                   </h2>
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap justify-end gap-x-4 gap-y-2">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Available</span>
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Available</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Reserved</span>
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Reserved</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-slate-300"></div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Occupied</span>
+                      <div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Occupied</span>
                     </div>
                   </div>
                 </div>

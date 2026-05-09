@@ -40,6 +40,11 @@ export const api = {
   auth: {
     login: (credentials) =>
       request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
+    setup2FA: (method = 'totp') => request('/auth/2fa/setup', { method: 'POST', body: JSON.stringify({ method }) }),
+    verify2FASetup: (token, method = 'totp') => request('/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ token, method }) }),
+    authenticate2FA: (token, mfaToken) => request('/auth/2fa/authenticate', { method: 'POST', body: JSON.stringify({ token, mfaToken }) }),
+    resend2FACode: (mfaToken) => request('/auth/2fa/resend', { method: 'POST', body: JSON.stringify({ mfaToken }) }),
+    update2FAMethod: (method) => request('/auth/2fa/method', { method: 'PATCH', body: JSON.stringify({ method }) }),
   },
 
   // User Profile

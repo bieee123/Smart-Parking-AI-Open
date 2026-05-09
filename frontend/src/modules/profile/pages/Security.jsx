@@ -3,7 +3,7 @@ import { api } from '../../../services/api';
 import { useTranslation } from 'react-i18next';
 import { 
   HiShieldCheck, HiExclamation, HiCheckCircle, HiLockClosed, 
-  HiKey, HiFingerPrint, HiDeviceMobile, HiRefresh 
+  HiKey, HiFingerPrint, HiDeviceMobile, HiRefresh, HiMail
 } from 'react-icons/hi';
 
 export default function Security() {
@@ -29,12 +29,20 @@ export default function Security() {
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState([]);
   const [fetchingLogs, setFetchingLogs] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorMethod, setTwoFactorMethod] = useState('totp'); // 'totp' or 'email'
+  const [qrCode, setQrCode] = useState('');
+  const [mfaSecret, setMfaSecret] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [setupMethod, setSetupMethod] = useState('totp'); // used during setup modal
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -42,8 +50,81 @@ export default function Security() {
   });
 
   useEffect(() => {
+    fetchProfile();
     fetchLogs();
   }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await api.profile.get();
+      if (response.success) {
+        setTwoFactorEnabled(response.data.two_factor_enabled);
+        setTwoFactorMethod(response.data.two_factor_method || 'totp');
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+    }
+  };
+
+  const handleSetup2FA = async (method = 'totp') => {
+    setLoading(true);
+    setError('');
+    setSetupMethod(method);
+    try {
+      const response = await api.auth.setup2FA(method);
+      if (response.success) {
+        if (method === 'totp') {
+          setQrCode(response.data.qrCode);
+          setMfaSecret(response.data.secret);
+        }
+        setIs2FAModalOpen(true);
+      }
+    } catch (err) {
+      setError(err.message || `Failed to initiate ${method} setup`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySetup = async () => {
+    if (!verificationToken) return;
+    
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.auth.verify2FASetup(verificationToken, setupMethod);
+      if (response.success) {
+        setTwoFactorEnabled(true);
+        setTwoFactorMethod(setupMethod);
+        setIs2FAModalOpen(false);
+        setSuccess(`2FA via ${setupMethod} enabled successfully!`);
+        setVerificationToken('');
+        setTimeout(() => setSuccess(''), 5000);
+      }
+    } catch (err) {
+      setError(err.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSwitchMethod = async (method) => {
+    if (method === twoFactorMethod) return;
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.auth.update2FAMethod(method);
+      if (response.success) {
+        setTwoFactorMethod(method);
+        setSuccess(`Switched to 2FA via ${method}`);
+        setTimeout(() => setSuccess(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to update 2FA method');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchLogs = async () => {
     setFetchingLogs(true);
@@ -223,24 +304,97 @@ export default function Security() {
                 <HiFingerPrint className="text-indigo-500 text-xl" />
                 <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('security.two_factor')}</h2>
               </div>
-              <div className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-black uppercase tracking-widest">
-                {t('security.recommended')}
+              <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${twoFactorEnabled ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+                {twoFactorEnabled ? t('common.active') : t('security.recommended')}
               </div>
             </div>
 
-            <div className="flex items-start gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm text-indigo-600">
-                <HiDeviceMobile className="text-2xl" />
+            <div className="space-y-4">
+              <div 
+                className={`flex items-start gap-6 p-6 rounded-2xl border transition-all ${
+                  twoFactorEnabled && twoFactorMethod === 'totp' 
+                  ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-500/20' 
+                  : 'bg-slate-50 border-slate-100'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+                  twoFactorEnabled && twoFactorMethod === 'totp' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600'
+                }`}>
+                  <HiDeviceMobile className="text-2xl" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-900 mb-1">{t('security.auth_app')}</h3>
+                    {twoFactorEnabled && twoFactorMethod !== 'totp' && (
+                      <button 
+                        onClick={() => handleSwitchMethod('totp')}
+                        disabled={loading}
+                        className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+                      >
+                        Switch to App
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Use Google Authenticator or similar apps to get secure codes.
+                  </p>
+                  {!twoFactorEnabled ? (
+                    <button 
+                      onClick={() => handleSetup2FA('totp')}
+                      disabled={loading}
+                      className="mt-4 text-xs font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest transition-colors flex items-center gap-1 group"
+                    >
+                      {t('security.setup_auth')} 
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </button>
+                  ) : (
+                    <div className="mt-4 flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 w-fit px-3 py-1.5 rounded-lg border border-green-100">
+                      <HiShieldCheck className="text-sm" />
+                      2FA is active on your account
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-slate-900 mb-1">{t('security.auth_app')}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  {t('security.auth_desc')}
-                </p>
-                <button className="mt-4 text-xs font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest transition-colors flex items-center gap-1 group">
-                  {t('security.setup_auth')} 
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </button>
+
+              <div 
+                className={`flex items-start gap-6 p-6 rounded-2xl border transition-all ${
+                  twoFactorEnabled && twoFactorMethod === 'email' 
+                  ? 'bg-primary-50 border-primary-200 ring-2 ring-primary-500/20' 
+                  : 'bg-slate-50 border-slate-100'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+                  twoFactorEnabled && twoFactorMethod === 'email' ? 'bg-primary-600 text-white' : 'bg-white text-primary-600'
+                }`}>
+                  <HiMail className="text-2xl" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-900 mb-1">Email Verification</h3>
+                    {twoFactorEnabled && twoFactorMethod !== 'email' && (
+                      <button 
+                        onClick={() => handleSwitchMethod('email')}
+                        disabled={loading}
+                        className="text-[10px] font-black text-primary-600 uppercase tracking-widest hover:underline"
+                      >
+                        Switch to Email
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Receive a unique verification code in your email inbox every time you login.
+                  </p>
+                  {!twoFactorEnabled && (
+                    <button 
+                      onClick={() => handleSetup2FA('email')}
+                      disabled={loading}
+                      className="mt-4 text-xs font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest transition-colors flex items-center gap-1 group"
+                    >
+                      Setup Email 2FA
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -377,6 +531,93 @@ export default function Security() {
           </div>
         </div>
       )}
+
+      {/* 2FA Setup Modal */}
+      {is2FAModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIs2FAModalOpen(false)} />
+          <div className="relative bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col">
+            {/* Header - Full Width Guaranteed */}
+            <div className={`w-full px-8 py-8 text-white text-center flex-shrink-0 ${setupMethod === 'email' ? 'bg-primary-600' : 'bg-indigo-600'}`}>
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 backdrop-blur-md shadow-inner">
+                {setupMethod === 'email' ? <HiMail /> : <HiDeviceMobile />}
+              </div>
+              <h2 className="text-2xl font-bold mb-2">
+                {setupMethod === 'email' ? 'Email Verification' : 'App Authentication'}
+              </h2>
+              <p className="text-white/80 text-sm font-medium px-4">
+                {setupMethod === 'email' ? 'Secure your account with email codes' : 'Scan the QR code with your app'}
+              </p>
+            </div>
+            
+            <div className="p-8 flex-1 flex flex-col">
+              {setupMethod === 'totp' ? (
+                <div className="flex flex-col items-center gap-6 mb-8">
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-3xl shadow-sm">
+                    {qrCode ? (
+                      <img src={qrCode} alt="2FA QR Code" className="w-40 h-40" />
+                    ) : (
+                      <div className="w-40 h-40 bg-slate-100 animate-pulse rounded-2xl" />
+                    )}
+                  </div>
+                  <div className="w-full text-center">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Secret Key</p>
+                    <code className="inline-block bg-slate-100 px-4 py-2 rounded-lg text-sm font-mono font-bold text-slate-700 border border-slate-200">
+                      {mfaSecret}
+                    </code>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-8 p-5 bg-primary-50 rounded-2xl border border-primary-100">
+                  <p className="text-sm text-primary-700 leading-relaxed text-center font-medium">
+                    We'll send a 6-digit code to your email for every sign-in attempt.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-auto space-y-8">
+                {/* Google Style Input Area */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center justify-center w-full max-w-[280px] mx-auto border-b-2 border-slate-200 focus-within:border-primary-500 transition-colors pb-2">
+                    <span className="text-2xl font-bold text-slate-400 select-none mr-2">SMART-</span>
+                    <input 
+                      type="text" 
+                      placeholder="000000"
+                      maxLength={6}
+                      autoFocus
+                      className="w-32 bg-transparent text-3xl font-bold tracking-widest text-slate-900 outline-none placeholder:text-slate-200 placeholder:font-medium placeholder:tracking-normal"
+                      value={verificationToken}
+                      onChange={(e) => setVerificationToken(e.target.value.replace(/[^0-9]/g, ''))}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium">
+                    Enter the 6-digit code to continue
+                  </p>
+                </div>
+                
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setIs2FAModalOpen(false)}
+                    className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleVerifySetup}
+                    disabled={loading || (setupMethod === 'totp' && verificationToken.length !== 6)}
+                    className={`flex-1 py-4 text-white rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
+                      setupMethod === 'email' ? 'bg-primary-600 hover:bg-primary-700 shadow-primary-600/30' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30'
+                    } disabled:opacity-50 disabled:shadow-none`}
+                  >
+                    {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                    {setupMethod === 'email' ? 'Enable 2FA' : 'Verify'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -426,7 +667,6 @@ function LogsModal({ isOpen, onClose, activities, getActionLabel, parseDevice, f
             </div>
           ))}
         </div>
-
         <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-center shrink-0">
           <button 
             onClick={onClose}

@@ -1,15 +1,17 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { HiMenuAlt3, HiX, HiArrowRight, HiShieldCheck, HiLogout } from 'react-icons/hi';
+import { HiMenuAlt3, HiX, HiArrowRight, HiShieldCheck, HiLogout, HiUser } from 'react-icons/hi';
 import useAuth from '../hooks/useAuth';
 
 export default function PublicLayout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const isAuth = isAuthenticated();
   const role = user?.role;
+  const isParkingPage = location.pathname === '/parking';
 
   // Handle navbar transparency on scroll
   useEffect(() => {
@@ -68,32 +70,70 @@ export default function PublicLayout({ children }) {
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
             {isAuth ? (
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={handlePortal} 
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all shadow-md shadow-slate-200"
-                >
-                  {role === 'viewer' ? 'View Slots' : 'Dashboard'}
-                  <HiArrowRight className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={handleLogout}
-                  className="p-2.5 rounded-full bg-slate-100 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all"
-                  title="Logout"
-                >
-                  <HiLogout className="w-5 h-5" />
-                </button>
+              <div className="flex items-center gap-4 relative">
+                {!isParkingPage && (
+                  <button 
+                    onClick={handlePortal} 
+                    className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all shadow-md shadow-slate-200"
+                  >
+                    {role === 'viewer' ? 'View Slots' : 'Dashboard'}
+                    <HiArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+                
+                <div className="relative group">
+                  <Link 
+                    to="/profile/account"
+                    className="flex items-center p-1 rounded-full hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
+                  >
+                    <div className="text-right hidden lg:block select-none max-w-0 opacity-0 invisible group-hover:max-w-[150px] group-hover:opacity-100 group-hover:visible group-hover:mr-3 transition-all duration-500 overflow-hidden whitespace-nowrap">
+                      <p className="text-sm font-extrabold text-slate-900 leading-none mb-1">{user?.full_name || user?.username}</p>
+                      <p className="text-[10px] text-slate-500 font-bold tracking-tight truncate opacity-80">{user?.email}</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">
+                      {user?.username?.charAt(0).toUpperCase()}
+                    </div>
+                  </Link>
+
+                  {/* Profile Dropdown Menu */}
+                  <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-y-2 group-hover:translate-y-0 z-[60]">
+                    <div className="px-4 py-3 border-b border-slate-50 mb-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Account</p>
+                      <p className="text-sm font-bold text-slate-900 truncate max-w-[140px]">{user?.email}</p>
+                    </div>
+                    <Link 
+                      to="/profile/account" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-all"
+                    >
+                      <HiUser className="text-lg opacity-60" />
+                      Your Profile
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 transition-all"
+                    >
+                      <HiLogout className="text-lg opacity-60" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
-              <>
-                <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Sign In</Link>
-                <Link 
-                  to="/register" 
-                  className="px-6 py-2.5 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200"
-                >
-                  Join Now
+              <div className="flex items-center gap-6">
+                <Link to="/parking" className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all shadow-md shadow-slate-200">
+                  Check Slots
+                  <HiArrowRight className="w-4 h-4" />
                 </Link>
-              </>
+                <div className="flex items-center gap-4">
+                  <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Sign In</Link>
+                  <Link 
+                    to="/register" 
+                    className="px-6 py-2.5 rounded-full bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200"
+                  >
+                    Join Now
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
 
@@ -110,8 +150,42 @@ export default function PublicLayout({ children }) {
             <button onClick={() => handleNav('how-it-works')} className="text-left text-base font-semibold text-slate-700">How it Works</button>
             <button onClick={() => handleNav('zones')} className="text-left text-base font-semibold text-slate-700">Availability</button>
             <div className="flex flex-col gap-3 pt-4 border-t border-slate-100">
-              <Link to="/login" className="w-full py-3 text-center text-sm font-bold text-slate-700 border border-slate-200 rounded-xl" onClick={() => setMenuOpen(false)}>Sign In</Link>
-              <Link to="/register" className="w-full py-3 text-center text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100" onClick={() => setMenuOpen(false)}>Join Now</Link>
+              {isAuth ? (
+                <>
+                  <Link 
+                    to="/profile/account" 
+                    className="w-full py-3 px-4 flex items-center gap-3 text-sm font-bold text-slate-700 bg-slate-50 rounded-xl"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">
+                      {user?.username?.charAt(0).toUpperCase()}
+                    </div>
+                    Your Profile
+                  </Link>
+                  {!isParkingPage && (
+                    <button 
+                      onClick={() => { handlePortal(); setMenuOpen(false); }}
+                      className="w-full py-4 text-center text-sm font-bold bg-slate-900 text-white rounded-xl shadow-lg"
+                    >
+                      {role === 'viewer' ? 'View Slots' : 'Go to Dashboard'}
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => { handleLogout(); setMenuOpen(false); }}
+                    className="w-full py-3 text-center text-sm font-bold text-red-500 border border-red-100 rounded-xl"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/parking" className="w-full py-4 text-center text-sm font-bold bg-slate-900 text-white rounded-xl shadow-lg" onClick={() => setMenuOpen(false)}>
+                    Check Slots
+                  </Link>
+                  <Link to="/login" className="w-full py-3 text-center text-sm font-bold text-slate-700 border border-slate-200 rounded-xl" onClick={() => setMenuOpen(false)}>Sign In</Link>
+                  <Link to="/register" className="w-full py-3 text-center text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100" onClick={() => setMenuOpen(false)}>Join Now</Link>
+                </>
+              )}
             </div>
           </div>
         )}
