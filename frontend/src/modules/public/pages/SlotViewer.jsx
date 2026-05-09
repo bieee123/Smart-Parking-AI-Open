@@ -73,6 +73,7 @@ export default function SlotViewer() {
   
   // Modal State for Check-in Feedback
   const [feedback, setFeedback] = useState({ show: false, type: '', title: '', message: '' });
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -356,8 +357,8 @@ export default function SlotViewer() {
               </div>
             </div>
 
-            {/* Side Panel: Form */}
-            <div className="w-full lg:w-96 sticky top-28">
+            {/* Side Panel: Form (Desktop Only) */}
+            <div className="hidden lg:block w-96 sticky top-28">
               <div className="bg-white rounded-[32px] p-8 border border-slate-200 shadow-sm">
                 <h2 className="flex items-center gap-2 font-black text-slate-900 uppercase tracking-widest text-sm mb-8">
                   <HiClipboardList className="text-indigo-600 w-5 h-5" /> Reservation
@@ -462,6 +463,125 @@ export default function SlotViewer() {
         </div>
       </div>
 
+      {/* Mobile Sticky Bar & Bottom Sheet */}
+      {!myReservation && selectedSlot && (
+        <div className="lg:hidden">
+          {/* Bottom Bar (Collapsed) */}
+          {!isSheetOpen && (
+            <div className="fixed bottom-0 left-0 right-0 z-[80] p-4 animate-in slide-in-from-bottom-full duration-300">
+              <div className="bg-slate-900 rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
+                    <FaParking className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Selected</div>
+                    <div className="text-sm font-black text-white">Slot {selectedSlot.slot_number}</div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsSheetOpen(true)}
+                  className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Sheet (Expanded) */}
+          {isSheetOpen && (
+            <div className="fixed inset-0 z-[90] flex items-end">
+              <div 
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                onClick={() => setIsSheetOpen(false)}
+              ></div>
+              <div className="relative w-full bg-white rounded-t-[40px] shadow-2xl p-8 pb-12 animate-in slide-in-from-bottom-full duration-500 max-h-[90vh] overflow-y-auto">
+                {/* Drag Handle */}
+                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
+                
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="flex items-center gap-2 font-black text-slate-900 uppercase tracking-widest text-sm">
+                    <HiClipboardList className="text-indigo-600 w-5 h-5" /> Reservation
+                  </h2>
+                  <button 
+                    onClick={() => setIsSheetOpen(false)}
+                    className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
+                  >
+                    <HiX className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleBook} className="space-y-6">
+                  <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+                    <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Selected Slot</div>
+                    <div className="text-2xl font-black text-slate-900">ZONE {selectedSlot.zone} — {selectedSlot.slot_number}</div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">License Plate</label>
+                      <input
+                        value={form.license_plate}
+                        onChange={e => setForm(p => ({ ...p, license_plate: e.target.value.toUpperCase() }))}
+                        placeholder="B 1234 ABC"
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold placeholder-slate-300 focus:outline-none focus:border-indigo-500 transition-all uppercase"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Vehicle</label>
+                        <select
+                          value={form.vehicle_type}
+                          onChange={e => setForm(p => ({ ...p, vehicle_type: e.target.value }))}
+                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm"
+                        >
+                          <option value="car">Car</option>
+                          <option value="truck">Truck</option>
+                          <option value="motorcycle">Motorcycle</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Duration</label>
+                        <select
+                          value={form.duration_hours}
+                          onChange={e => setForm(p => ({ ...p, duration_hours: parseInt(e.target.value) }))}
+                          className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm"
+                        >
+                          {[1, 2, 3, 4, 6, 8, 12, 24].map(h => (
+                            <option key={h} value={h}>{h} Hour{h > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
+                    <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Fee Est.</div>
+                    <div className="text-2xl font-black">{formatRp(estimatedFee)}</div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={booking}
+                    className="w-full py-5 rounded-2xl bg-indigo-600 text-white font-black text-base shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                  >
+                    {booking ? 'Processing...' : (
+                      <>
+                        {isAuthenticated() ? 'Confirm' : 'Sign In & Book'}
+                        <HiArrowRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Feedback Modal */}
       {feedback.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
@@ -476,7 +596,10 @@ export default function SlotViewer() {
               {feedback.message}
             </p>
             <button
-              onClick={() => setFeedback({ ...feedback, show: false })}
+              onClick={() => {
+                setFeedback({ ...feedback, show: false });
+                setIsSheetOpen(false); // Close sheet too on success/error
+              }}
               className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 transition-all shadow-lg"
             >
               Understand
