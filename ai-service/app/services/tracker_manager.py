@@ -41,14 +41,24 @@ class CameraTracker:
         self._track_history: dict[int, list] = defaultdict(list)  # track_id → [count_frames]
 
         if _SV_AVAILABLE:
-            self.tracker = sv.ByteTracker(
-                track_activation_threshold=0.25,
-                lost_track_buffer=30,       # Keep track alive for 30 frames after disappearance
-                minimum_matching_threshold=0.8,
-                minimum_consecutive_frames=2,  # Require 2 frames before confirming new track
-            )
+            try:
+                # supervision >= 0.22: sv.ByteTrack (was sv.ByteTracker in older versions)
+                TrackerCls = getattr(sv, "ByteTrack", None) or getattr(sv, "ByteTracker", None)
+                if TrackerCls is None:
+                    raise AttributeError("No ByteTrack class found in supervision")
+                self.tracker = TrackerCls(
+                    track_activation_threshold=0.25,
+                    lost_track_buffer=30,
+                    minimum_matching_threshold=0.8,
+                    minimum_consecutive_frames=2,
+                )
+                logger.info("[CameraTracker:%s] ByteTrack initialized via %s", camera_id, TrackerCls.__name__)
+            except Exception as e:
+                logger.warning("[CameraTracker:%s] ByteTrack init failed: %s — passthrough mode.", camera_id, e)
+                self.tracker = None
         else:
             self.tracker = None
+
 
     def update(self, detections_raw: list, frame_shape: tuple) -> list:
         """

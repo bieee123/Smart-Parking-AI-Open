@@ -148,9 +148,12 @@ class EntryExitCounter:
         """
         self.line_y        = line_y
         self._prev_cy:     dict[int, float] = {}   # track_id → last center_y
+        self._last_seen:   dict[int, int]   = {}   # track_id → last frame index
         self.entry_count:  int = 0
         self.exit_count:   int = 0
         self._counted:     set = set()
+        self._frame_idx:   int = 0
+        self.TTL_FRAMES:   int = 300  # BUG-3 FIX: prune tracks not seen for 300 frames
 
     def update(self, tracked_detections: list) -> dict:
         """
@@ -162,11 +165,16 @@ class EntryExitCounter:
         Returns:
             {"entries": int, "exits": int, "net_count": int}
         """
+        self._frame_idx += 1
+        active_ids = set()
+
         for det in tracked_detections:
             if len(det) < 7:
                 continue
             track_id = int(det[6])
             cy = float(det[1]) + float(det[3]) / 2.0
+            active_ids.add(track_id)
+            self._last_seen[track_id] = self._frame_idx
 
             prev = self._prev_cy.get(track_id)
             if prev is not None and track_id not in self._counted:
@@ -180,6 +188,18 @@ class EntryExitCounter:
                     logger.info("[EntryExit] Exit #%d (track %d)", self.exit_count, track_id)
 
             self._prev_cy[track_id] = cy
+
+        # BUG-3 FIX: Prune tracks not seen for TTL_FRAMES to prevent unbounded growth
+        if self._frame_idx % 100 == 0:
+            stale = [
+                tid for tid, last in self._last_seen.items()
+                if self._frame_idx - last > self.TTL_FRAMES
+            ]
+            for tid in stale:
+                self._prev_cy.pop(tid, None)
+                self._last_seen.pop(tid, None)
+            if stale:
+                logger.debug("[EntryExit] Pruned %d stale tracks", len(stale))
 
         return {
             "entries":   self.entry_count,

@@ -160,6 +160,18 @@ async def shutdown_event():
         ocr_worker.shutdown()
     except Exception:
         pass
+    # BUG-5 FIX: Shut down EnsembleEngine persistent thread pools
+    try:
+        from app.services.ensemble_engine import EnsembleEngine
+        from app.services.inference_engine import inference_engine
+        _eng = EnsembleEngine.__new__(EnsembleEngine)
+        _eng.engine = inference_engine
+        # Shutdown any live instances via stream_processor/camera_pool references
+        from app.services.stream_processor import _ensemble as _sp_ensemble
+        if _sp_ensemble:
+            _sp_ensemble.shutdown()
+    except Exception:
+        pass
     logger.info("[Shutdown] ✅ Shutdown complete.")
 
 

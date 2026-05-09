@@ -1,0 +1,30 @@
+{
+  "OCR": {
+    "status": "PASS",
+    "details": "OCR alive, latency=4699ms, result={'plate_number': '1234', 'plate_confidence': 1.0}"
+  },
+  "Slots": {
+    "status": "PASS",
+    "details": "empty=0/3, full=3/3"
+  },
+  "Tracking": {
+    "status": "PASS",
+    "details": "IDs seen={1}, no_contamination=True"
+  },
+  "SSE": {
+    "status": "PASS",
+    "details": "Received 5/5 events"
+  },
+  "Multi-Camera": {
+    "status": "PASS",
+    "details": "Max=10, overflow_handled=True"
+  },
+  "Heatmap": {
+    "status": "PASS",
+    "details": "sparse=1.00, dense=1.00"
+  },
+  "Entry/Exit": {
+    "status": "PASS",
+    "details": "entries=1, exits=1, no_false_count=True"
+  }
+}

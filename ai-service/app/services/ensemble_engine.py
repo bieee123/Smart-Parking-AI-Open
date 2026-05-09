@@ -61,7 +61,9 @@ class EnsembleEngine:
 
     def __init__(self, inference_engine):
         self.engine = inference_engine
-        logger.info("[EnsembleEngine] Initialized V5.0. Multi-LPR + Crowd Fusion active.")
+        # BUG-5 FIX: Persistent thread pool — NOT created per-frame
+        self._pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ensemble")
+        logger.info("[EnsembleEngine] Initialized V5.1. Multi-LPR + Crowd Fusion active. Pool=persistent.")
 
     # ── Lighting Utils ─────────────────────────────────────────────────────────
 
@@ -221,14 +223,21 @@ class EnsembleEngine:
     def _detect_parallel(self, frame: np.ndarray, mode: str) -> list:
         """
         C1 FIX: Run vehicle model + crowd model in PARALLEL.
-        Results are merged and cross-model NMS is applied to remove duplicates.
+        BUG-5 FIX: Uses persistent self._pool instead of creating a new executor per frame.
         """
-        with ThreadPoolExecutor(max_workers=2) as ex:
-            f_vehicle = ex.submit(self.engine.detect_vehicles, frame)
-            f_crowd   = ex.submit(self.engine.detect_crowd, frame)   # NOW ACTIVE
+        f_vehicle = self._pool.submit(self.engine.detect_vehicles, frame)
+        f_crowd   = self._pool.submit(self.engine.detect_crowd, frame)
 
-        vehicle_dets = f_vehicle.result() or []
-        crowd_dets   = f_crowd.result()   or []
+        try:
+            vehicle_dets = f_vehicle.result(timeout=10.0) or []
+        except Exception as e:
+            logger.warning("[EnsembleEngine] Vehicle detect timeout/error: %s", e)
+            vehicle_dets = []
+        try:
+            crowd_dets = f_crowd.result(timeout=10.0) or []
+        except Exception as e:
+            logger.warning("[EnsembleEngine] Crowd detect timeout/error: %s", e)
+            crowd_dets = []
 
         logger.debug(
             "[EnsembleEngine] Parallel detect: vehicle=%d crowd=%d",
@@ -237,6 +246,11 @@ class EnsembleEngine:
 
         # Merge both detection sets, then remove duplicates via NMS
         return vehicle_dets + crowd_dets
+
+    def shutdown(self):
+        """Cleanly shut down the persistent thread pool."""
+        self._pool.shutdown(wait=False)
+        logger.info("[EnsembleEngine] Thread pool shut down.")
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
