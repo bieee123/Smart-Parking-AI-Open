@@ -1,0 +1,32 @@
+{
+  "trained_at": "2026-05-09T23:07:48.733884",
+  "metrics": {
+    "mae": 0.11306597163279852,
+    "rmse": 0.11709239906274974,
+    "r2": -43.46690784303855
+  },
+  "features": [
+    "is_occupied",
+    "hour_of_day",
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "is_peak_hour",
+    "hour_sin",
+    "hour_cos",
+    "is_occupied_lag_1",
+    "is_occupied_lag_2",
+    "is_occupied_lag_3",
+    "is_occupied_lag_6",
+    "is_occupied_lag_12",
+    "is_occupied_lag_24",
+    "is_occupied_rolling_mean_6",
+    "is_occupied_rolling_std_6",
+    "is_occupied_rolling_mean_12",
+    "is_occupied_rolling_std_12",
+    "is_occupied_rolling_mean_24",
+    "is_occupied_rolling_std_24",
+    "is_holiday"
+  ],
+  "model_type": "XGBRegressor"
+}

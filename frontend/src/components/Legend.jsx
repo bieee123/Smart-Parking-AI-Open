@@ -1,6 +1,6 @@
 import { 
   HiCheckCircle, HiMinusCircle, HiBookmark, 
-  HiBan, HiExclamationCircle 
+  HiBan, HiExclamationCircle, HiLightningBolt, HiUserCircle
 } from 'react-icons/hi';
 
 // Legend component showing status color meanings
@@ -10,6 +10,8 @@ const STATUS_LEGEND = [
   { color: 'bg-blue-500', label: 'Reserved', description: 'Reserved slot', icon: <HiBookmark /> },
   { color: 'bg-yellow-500', label: 'Offline', description: 'Camera/sensor offline', icon: <HiBan /> },
   { color: 'bg-orange-500', label: 'Error', description: 'System error', icon: <HiExclamationCircle /> },
+  { color: 'bg-indigo-600', label: 'EV Charging', description: 'Electric vehicle slot', icon: <HiLightningBolt /> },
+  { color: 'bg-blue-600', label: 'Disabled', description: 'Accessibility slot', icon: <HiUserCircle /> },
 ];
 
 export default function Legend() {

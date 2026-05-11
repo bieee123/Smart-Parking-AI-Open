@@ -1,7 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { db } from '../db/postgres.js';
-import { reservations, parkingSlots } from '../db/drizzle/schema.js';
-import { eq, and, sql } from 'drizzle-orm';
+import { reservations, parkingSlots, parkingLogs } from '../db/drizzle/schema.js';
+import { eq, and, sql, ilike } from 'drizzle-orm';
 
 // Tarif: { firstHour, perHour }
 const TARIFF = {
@@ -27,6 +27,9 @@ export const getPublicSlots = asyncHandler(async (req, res) => {
     status: parkingSlots.status,
     is_occupied: parkingSlots.is_occupied,
     vehicle_type: parkingSlots.vehicle_type,
+    slot_type: parkingSlots.slot_type,
+    latitude: parkingSlots.latitude,
+    longitude: parkingSlots.longitude,
   }).from(parkingSlots);
 
   // Zone summary
@@ -232,4 +235,54 @@ export const getAllReservations = asyncHandler(async (req, res) => {
   .limit(100);
 
   res.json({ success: true, data: allReservations });
+});
+
+/**
+ * GET /api/public/find-car?plate=... — Find car location and entry time
+ */
+export const findVehicle = asyncHandler(async (req, res) => {
+  const { plate } = req.query;
+  if (!plate) return res.status(400).json({ error: 'License plate is required' });
+
+  const term = plate.toUpperCase().replace(/\s/g, '');
+  
+  // Find in parkingSlots where license_plate matches
+  const slot = await db.select({
+    id: parkingSlots.id,
+    slot_number: parkingSlots.slot_number,
+    zone: parkingSlots.zone,
+    latitude: parkingSlots.latitude,
+    longitude: parkingSlots.longitude,
+    status: parkingSlots.status,
+    license_plate: parkingSlots.license_plate,
+    vehicle_type: parkingSlots.vehicle_type
+  })
+  .from(parkingSlots)
+  .where(sql`UPPER(REPLACE(${parkingSlots.license_plate}, ' ', '')) = ${term}`)
+  .limit(1);
+
+  if (slot.length === 0) {
+    return res.status(404).json({ success: false, message: 'Vehicle not found in any parking slot.' });
+  }
+
+  // Get entry_time from latest active log for this slot/plate
+  const [log] = await db.select({
+    entry_time: parkingLogs.entry_time
+  })
+  .from(parkingLogs)
+  .where(and(
+    eq(parkingLogs.slot_id, slot[0].id), 
+    eq(parkingLogs.status, 'active')
+  ))
+  .orderBy(sql`${parkingLogs.entry_time} DESC`)
+  .limit(1);
+
+  res.json({
+    success: true,
+    data: {
+      slot: slot[0],
+      entry_time: log ? log.entry_time : null,
+      tariff: TARIFF[slot[0].vehicle_type || 'car'] || TARIFF.car
+    }
+  });
 });

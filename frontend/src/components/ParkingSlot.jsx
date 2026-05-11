@@ -1,6 +1,7 @@
 // ParkingSlot — Individual slot card component
 // Matches MapParking aspect-square box style with extra detail overlays
 import { FaCar, FaMotorcycle, FaTruck } from 'react-icons/fa';
+import { HiLightningBolt, HiUserCircle } from 'react-icons/hi';
 
 // Map status to color classes (no border, like MapParking)
 const STATUS_COLORS = {
@@ -45,6 +46,18 @@ export default function ParkingSlot({ slot, onClick }) {
           className="absolute top-1 left-1 w-2 h-2 rounded-full bg-green-300 border border-white/50"
           title={`Camera: ${slot.camera_id}`}
         />
+      )}
+
+      {/* Slot Type indicator (bottom-left) */}
+      {slot.slot_type === 'ev' && (
+        <span className="absolute bottom-1 left-1 text-white drop-shadow-md" title="EV Charging">
+          <HiLightningBolt className="w-3.5 h-3.5" />
+        </span>
+      )}
+      {slot.slot_type === 'disabled' && (
+        <span className="absolute bottom-1 left-1 text-white drop-shadow-md" title="Disabled Accessibility">
+          <HiUserCircle className="w-3.5 h-3.5" />
+        </span>
       )}
 
       {/* Center: slot number */}

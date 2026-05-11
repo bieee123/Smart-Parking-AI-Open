@@ -120,10 +120,12 @@ export default function PublicLayout({ children }) {
               </div>
             ) : (
               <div className="flex items-center gap-6">
-                <Link to="/parking" className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all shadow-md shadow-slate-200">
-                  Check Slots
-                  <HiArrowRight className="w-4 h-4" />
-                </Link>
+                {!isParkingPage && (
+                  <Link to="/parking" className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all shadow-md shadow-slate-200">
+                    Check Slots
+                    <HiArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
                 <div className="flex items-center gap-4">
                   <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Sign In</Link>
                   <Link 
@@ -179,9 +181,11 @@ export default function PublicLayout({ children }) {
                 </>
               ) : (
                 <>
-                  <Link to="/parking" className="w-full py-4 text-center text-sm font-bold bg-slate-900 text-white rounded-xl shadow-lg" onClick={() => setMenuOpen(false)}>
-                    Check Slots
-                  </Link>
+                  {!isParkingPage && (
+                    <Link to="/parking" className="w-full py-4 text-center text-sm font-bold bg-slate-900 text-white rounded-xl shadow-lg" onClick={() => setMenuOpen(false)}>
+                      Check Slots
+                    </Link>
+                  )}
                   <Link to="/login" className="w-full py-3 text-center text-sm font-bold text-slate-700 border border-slate-200 rounded-xl" onClick={() => setMenuOpen(false)}>Sign In</Link>
                   <Link to="/register" className="w-full py-3 text-center text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100" onClick={() => setMenuOpen(false)}>Join Now</Link>
                 </>

@@ -45,6 +45,9 @@ export const parkingSlots = pgTable('parking_slots', {
   status: varchar('status', { length: 20 }).notNull().default('empty'), // empty, occupied, reserved, offline, error
   vehicle_type: varchar('vehicle_type', { length: 20 }), // car, motorcycle, truck
   license_plate: varchar('license_plate', { length: 20 }),
+  slot_type: varchar('slot_type', { length: 20 }).notNull().default('standard'), // standard, ev, disabled
+  latitude: text('latitude'),
+  longitude: text('longitude'),
   camera_id: varchar('camera_id', { length: 50 }),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),

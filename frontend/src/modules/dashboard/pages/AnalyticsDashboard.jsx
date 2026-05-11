@@ -7,7 +7,7 @@ import OccupancyChart from '../components/analytics/OccupancyChart';
 import PredictedDemandChart from '../components/analytics/PredictedDemandChart';
 import CorrelationChart from '../components/analytics/CorrelationChart';
 import ViolationHeatmap from '../components/analytics/ViolationHeatmap';
-import BottleneckMap from '../components/analytics/BottleneckMap';
+import BottleneckMap from '../components/analytics/BottleneckMapLibre';
 import EfficiencyStats from '../components/analytics/EfficiencyStats';
 
 import { api } from '../../../services/api';

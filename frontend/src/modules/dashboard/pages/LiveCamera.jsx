@@ -40,7 +40,7 @@ const LiveCamera = () => {
 
   // ── Persistent camera states via localStorage ──────────────────────────────
   const CAMERA_STATE_KEY = 'smart_parking_camera_states';
-  
+
   const saveCameraStates = (cams) => {
     try {
       const existing = JSON.parse(localStorage.getItem(CAMERA_STATE_KEY) || '{}');
@@ -81,9 +81,9 @@ const LiveCamera = () => {
 
   const [streetCameras, setStreetCameras] = useState(() => {
     const defaults = [
-      { id: 'ATCS-001', name: 'ATCS Pusat - 001', status: 'online', area: 'Street' },
-      { id: 'ATCS-002', name: 'ATCS Pusat - 002', status: 'online', area: 'Street' },
-      { id: 'ATCS-003', name: 'ATCS Pusat - 003', status: 'online', area: 'Street' },
+      { id: 'ATCS-001', name: 'ATCS Pusat - 001', status: 'offline', area: 'Street' },
+      { id: 'ATCS-002', name: 'ATCS Pusat - 002', status: 'offline', area: 'Street' },
+      { id: 'ATCS-003', name: 'ATCS Pusat - 003', status: 'offline', area: 'Street' },
       { id: 'ATCS-004', name: 'ATCS Pusat - 004', status: 'offline', area: 'Street' },
     ];
     return applySavedStates(defaults);
@@ -251,7 +251,7 @@ const LiveCamera = () => {
         setStreetCameras(finalStreetCams);
 
         setLogs(logsRes.data?.logs || []);
-        
+
         // Merge DB history with local history, avoiding duplicates by ID
         const dbHistory = historyRes.data || [];
         setAnalysisHistory(prev => {
@@ -277,7 +277,7 @@ const LiveCamera = () => {
 
   const toggleCameraStatus = async (id, currentStatus, type) => {
     const newStatus = currentStatus === 'online' ? 'offline' : 'online';
-    
+
     // 1. Calculate updated list
     const targetList = type === 'parking' ? cameras : streetCameras;
     const updated = targetList.map(c => c.id === id ? { ...c, status: newStatus } : c);

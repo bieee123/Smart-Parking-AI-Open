@@ -7,6 +7,7 @@ import {
   getTariff,
   checkinReservation,
   getAllReservations,
+  findVehicle,
 } from '../controllers/reservation.controller.js';
 import { authMiddleware } from '../middlewares/auth.js';
 
@@ -14,6 +15,7 @@ const router = Router();
 
 // Public (no auth needed)
 router.get('/public/slots', getPublicSlots);
+router.get('/public/find-car', findVehicle);
 router.get('/reservations/tariff', getTariff);
 
 // Protected (viewer/admin/operator)
