@@ -56,7 +56,10 @@ export default function SlotViewer() {
   const [booking, setBooking] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [feedback, setFeedback] = useState({ show: false, type: '', title: '', message: '' });
+  
+  // Interaction State
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -106,12 +109,13 @@ export default function SlotViewer() {
     if (!searchPlate) return;
     setSearching(true);
     setFoundVehicle(null);
+    setShowSummary(false);
     try {
       const res = await fetch(`${API_URL}/public/find-car?plate=${searchPlate}`);
       const data = await res.json();
       if (data.success) {
         setFoundVehicle(data.data);
-        setIsSheetOpen(true); // Open sheet for results on mobile
+        setIsSheetOpen(true);
       } else {
         setFeedback({ show: true, type: 'error', title: 'Vehicle Not Found', message: data.message || 'Plate not detected.' });
       }
@@ -139,6 +143,7 @@ export default function SlotViewer() {
       setFeedback({ show: true, type: 'success', title: 'Success!', message: 'Slot reserved successfully.' });
       setSelectedSlot(null);
       setIsSheetOpen(false);
+      setShowSummary(false);
       await fetchData();
       await fetchMyReservation();
     } catch (err) {
@@ -188,7 +193,7 @@ export default function SlotViewer() {
 
   return (
     <PublicLayout>
-      <div className="min-h-screen bg-slate-50 pt-28 pb-32 px-4 sm:px-6">
+      <div className="min-h-screen bg-slate-50 pt-28 pb-40 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           
           {/* Header */}
@@ -287,9 +292,10 @@ export default function SlotViewer() {
                           isSelected={selectedSlot?.id === slot.id} 
                           onClick={() => { 
                             if (slot.status === 'empty') { 
-                              setFoundVehicle(null); // Reset search when starting new booking
+                              setFoundVehicle(null);
                               setSelectedSlot(slot); 
-                              setIsSheetOpen(true); 
+                              setShowSummary(true); // Show floating card first
+                              setIsSheetOpen(false); 
                             } 
                           }} 
                         />
@@ -326,17 +332,36 @@ export default function SlotViewer() {
         </div>
       </div>
 
-      {/* MOBILE BOTTOM SHEET — The solution for efficiency */}
+      {/* FLOATING SUMMARY CARD (Step 1) */}
+      {showSummary && selectedSlot && !isSheetOpen && (
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[90] animate-in slide-in-from-bottom-10 duration-300">
+           <div className="bg-white rounded-[28px] p-5 shadow-2xl border border-slate-200 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                 <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex flex-col items-center justify-center text-white font-black shadow-lg shadow-indigo-100">
+                    <span className="text-[8px] uppercase tracking-tighter opacity-70">Slot</span>
+                    <span className="text-lg leading-none">{selectedSlot.slot_number}</span>
+                 </div>
+                 <div>
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Zone {selectedSlot.zone}</h3>
+                    <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">{selectedSlot.slot_type}</p>
+                 </div>
+              </div>
+              <button 
+                onClick={() => { setIsSheetOpen(true); setShowSummary(false); }}
+                className="bg-slate-900 text-white px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-800 transition-all active:scale-95 shadow-lg"
+              >
+                 Continue <HiArrowRight />
+              </button>
+           </div>
+        </div>
+      )}
+
+      {/* MOBILE BOTTOM SHEET (Step 2) */}
       {isSheetOpen && (
         <div className="lg:hidden fixed inset-0 z-[100] flex items-end justify-center animate-in fade-in duration-300">
-           {/* Backdrop */}
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSheetOpen(false)} />
-           
-           {/* Sheet Content */}
            <div className="relative w-full max-w-lg bg-white rounded-t-[40px] shadow-2xl animate-in slide-in-from-bottom duration-500 overflow-hidden flex flex-col">
-              {/* Drag Handle */}
               <div className="h-1.5 w-12 bg-slate-200 rounded-full mx-auto my-4" />
-              
               <div className="px-8 pb-10 overflow-y-auto max-h-[85vh]">
                  <div className="flex justify-between items-center mb-6">
                     <h2 className="text-lg font-black text-slate-900 uppercase tracking-widest">
@@ -387,7 +412,7 @@ export default function SlotViewer() {
   );
 }
 
-// Sub-components for cleaner code
+// Sub-components
 function VehicleInfo({ foundVehicle, liveFee, onClose, hideClose }) {
   return (
     <>
@@ -469,6 +494,7 @@ function SlotCard({ slot, isSelected, onClick }) {
     <button onClick={onClick} className={`relative h-28 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center gap-1 ${isSelected ? 'border-indigo-600 bg-indigo-50 scale-105 shadow-xl z-10' : `${config.bg} border-transparent`}`}>
       <span className={`text-sm font-black ${isSelected ? 'text-indigo-600' : 'text-slate-900'}`}>{slot.slot_number}</span>
       <span className={`text-[9px] font-black uppercase tracking-wider ${isSelected ? 'text-indigo-400' : config.text}`}>{config.label}</span>
+      
       {slot.slot_type === 'ev' && (
         <div className="absolute top-2 left-2 flex items-center gap-1 text-indigo-600 bg-indigo-50/80 px-1.5 py-0.5 rounded-md border border-indigo-100 shadow-sm backdrop-blur-sm">
           <HiLightningBolt className="w-2.5 h-2.5" />
