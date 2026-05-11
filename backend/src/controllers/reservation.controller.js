@@ -1,7 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { db } from '../db/postgres.js';
 import { reservations, parkingSlots, parkingLogs } from '../db/drizzle/schema.js';
-import { eq, and, sql, ilike } from 'drizzle-orm';
+import { eq, and, sql, ilike, desc } from 'drizzle-orm';
 
 // Tarif: { firstHour, perHour }
 const TARIFF = {
@@ -284,5 +284,34 @@ export const findVehicle = asyncHandler(async (req, res) => {
       entry_time: log ? log.entry_time : null,
       tariff: TARIFF[slot[0].vehicle_type || 'car'] || TARIFF.car
     }
+  });
+});
+
+/**
+ * Get parking history for the current user
+ */
+export const getParkingHistory = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  
+  // Fetch reservations joined with slot info for this user
+  const history = await db.select({
+    id: reservations.id,
+    slot_number: parkingSlots.slot_number,
+    zone: parkingSlots.zone,
+    license_plate: reservations.license_plate,
+    vehicle_type: reservations.vehicle_type,
+    start_time: reservations.start_time,
+    end_time: reservations.end_time,
+    total_fee: reservations.estimated_fee,
+    status: reservations.status
+  })
+  .from(reservations)
+  .leftJoin(parkingSlots, eq(reservations.slot_id, parkingSlots.id))
+  .where(eq(reservations.user_id, userId))
+  .orderBy(desc(reservations.created_at));
+
+  res.json({
+    success: true,
+    data: history
   });
 });

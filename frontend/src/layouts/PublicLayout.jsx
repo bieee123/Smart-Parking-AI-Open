@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { HiMenuAlt3, HiX, HiArrowRight, HiShieldCheck, HiLogout, HiUser } from 'react-icons/hi';
+import { HiMenuAlt3, HiX, HiArrowRight, HiShieldCheck, HiLogout, HiUser, HiClipboardList } from 'react-icons/hi';
 import useAuth from '../hooks/useAuth';
 
 export default function PublicLayout({ children }) {
@@ -102,6 +102,13 @@ export default function PublicLayout({ children }) {
                       <p className="text-sm font-bold text-slate-900 truncate max-w-[140px]">{user?.email}</p>
                     </div>
                     <Link 
+                      to="/parking/history" 
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-all"
+                    >
+                      <HiClipboardList className="text-lg opacity-60" />
+                      Parking Activity
+                    </Link>
+                    <Link 
                       to="/profile/account" 
                       className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-all"
                     >
@@ -163,6 +170,14 @@ export default function PublicLayout({ children }) {
                       {user?.username?.charAt(0).toUpperCase()}
                     </div>
                     Your Profile
+                  </Link>
+                  <Link 
+                    to="/parking/history" 
+                    className="w-full py-3 px-4 flex items-center gap-3 text-sm font-bold text-slate-700 bg-slate-50 rounded-xl"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <HiClipboardList className="text-lg opacity-60 ml-1.5" />
+                    Parking Activity
                   </Link>
                   {!isParkingPage && (
                     <button 

@@ -22,6 +22,7 @@ import LandingPage from './modules/public/pages/LandingPage';
 import ViewerAuth from './modules/public/pages/ViewerAuth';
 import AdminLogin from './modules/public/pages/AdminLogin';
 import SlotViewer from './modules/public/pages/SlotViewer';
+import ParkingHistory from './modules/public/pages/ParkingHistory';
 
 function NotFound() {
   const { t } = useTranslation();
@@ -47,6 +48,7 @@ function App() {
       <Route path="/login" element={<ViewerAuth />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/parking" element={<SlotViewer />} />
+      <Route path="/parking/history" element={<ProtectedRoute><ParkingHistory /></ProtectedRoute>} />
 
       {/* Protected — wrapped in DashboardLayout */}
       <Route

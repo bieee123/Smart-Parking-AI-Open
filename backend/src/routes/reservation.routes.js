@@ -8,6 +8,7 @@ import {
   checkinReservation,
   getAllReservations,
   findVehicle,
+  getParkingHistory,
 } from '../controllers/reservation.controller.js';
 import { authMiddleware } from '../middlewares/auth.js';
 
@@ -21,6 +22,7 @@ router.get('/reservations/tariff', getTariff);
 // Protected (viewer/admin/operator)
 router.post('/reservations', authMiddleware, createReservation);
 router.get('/reservations/my', authMiddleware, getMyReservations);
+router.get('/reservations/history', authMiddleware, getParkingHistory);
 router.patch('/reservations/:id/checkin', authMiddleware, checkinReservation);
 router.delete('/reservations/:id', authMiddleware, cancelReservation);
 
