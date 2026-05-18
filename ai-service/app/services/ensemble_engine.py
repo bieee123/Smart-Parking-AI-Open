@@ -91,8 +91,33 @@ class EnsembleEngine:
 
             # 1. PARALLEL: Vehicle + Crowd detection (C1: crowd now active)
             raw_vehicles = self._detect_parallel(frame, mode)
+            logger.info("[EnsembleEngine] Raw detections: vehicle+crowd merged = %d", len(raw_vehicles))
+
             filtered_vehicles = self._filter(raw_vehicles, VEHICLE_CONFIDENCE_THRESHOLD)
+            logger.info("[EnsembleEngine] After confidence filter: %d", len(filtered_vehicles))
+
             deduped_vehicles = self._nms_merge(filtered_vehicles)
+            logger.info("[EnsembleEngine] After per-class NMS: %d", len(deduped_vehicles))
+
+            # NEW: Cross-class duplicate suppression (same car detected by 2 models)
+            cross_suppressed = self._suppress_cross_class_duplicates(deduped_vehicles, iou_threshold=0.35)
+            logger.info("[EnsembleEngine] After cross-class suppression: %d", len(cross_suppressed))
+
+            # Existing post-process (nested, area, aspect ratio filters)
+            final_vehicles = self._post_process(cross_suppressed, frame.shape)
+            logger.info("[EnsembleEngine] After post_process: %d", len(final_vehicles))
+
+            # Fix B: Explicit class filtering to ensure NO humans/non-vehicles
+            # Using remapped IDs: 0:car, 1:threewheel, 2:bus, 3:truck, 4:motorbike, 5:van
+            VEHICLE_CLASS_IDS = {0, 1, 2, 3, 4, 5} 
+            final_vehicles = [d for d in final_vehicles if int(d[5]) in VEHICLE_CLASS_IDS]
+            
+            # Adaptive threshold logging
+            adaptive_conf = VEHICLE_CONFIDENCE_THRESHOLD if brightness > 80 else max(VEHICLE_CONFIDENCE_THRESHOLD * 0.75, 0.25)
+            logger.info("[Pipeline] brightness=%.1f adaptive_conf=%.2f", brightness, adaptive_conf)
+            logger.info("[Pipeline] After class filter: %d vehicles", len(final_vehicles))
+
+            deduped_vehicles = final_vehicles  # Update for downstream counting
 
             # 2. Parking slot violations
             raw_slots = self.engine.check_parking_slots(frame)
@@ -181,6 +206,7 @@ class EnsembleEngine:
                     logger.warning("[EnsembleEngine] SlotManager error: %s", _se)
 
             t_total = (time.perf_counter() - t_start) * 1000
+            logger.info("[Pipeline] FINAL: vehicles=%d density=%s", count, density)
             logger.info(
                 "[EnsembleEngine] Frame analyzed in %.0fms | vehicles=%d density=%s mode=%s slots=%s",
                 t_total, count, density, mode,
@@ -247,6 +273,37 @@ class EnsembleEngine:
         # Merge both detection sets, then remove duplicates via NMS
         return vehicle_dets + crowd_dets
 
+    def _suppress_cross_class_duplicates(self, detections: list, iou_threshold: float = 0.35) -> list:
+        """
+        Remove boxes that overlap heavily with a higher-confidence box,
+        regardless of class. This catches cases where vehicle + crowd model
+        both detect the same car but assign different class IDs.
+        """
+        if not detections:
+            return []
+
+        detections = sorted(detections, key=lambda d: d[4], reverse=True)
+        keep = []
+
+        for candidate in detections:
+            suppressed = False
+            for kept in keep:
+                if self.engine._iou(candidate, kept) >= iou_threshold:
+                    suppressed = True
+                    logger.debug(
+                        "[CrossClassNMS] Suppressed cls=%d conf=%.2f (overlaps cls=%d conf=%.2f iou>=%.2f)",
+                        int(candidate[5]), candidate[4], int(kept[5]), kept[4], iou_threshold
+                    )
+                    break
+            if not suppressed:
+                keep.append(candidate)
+
+        logger.info(
+            "[CrossClassNMS] Input=%d Output=%d (removed %d cross-class duplicates)",
+            len(detections), len(keep), len(detections) - len(keep)
+        )
+        return keep
+
     def shutdown(self):
         """Cleanly shut down the persistent thread pool."""
         self._pool.shutdown(wait=False)
@@ -275,9 +332,87 @@ class EnsembleEngine:
         if not detections:
             return []
         try:
-            return self.engine._nms(detections, iou_threshold=NMS_IOU_THRESHOLD)
+            return self.engine._nms(detections, iou_threshold=0.35)
         except Exception:
             return sorted(detections, key=lambda d: d[4], reverse=True)
+
+    def _post_process(self, detections: list, img_shape: tuple) -> list:
+        """
+        ISSUE 2 FIX: High-Precision Vehicle Suppression.
+        Removes nested boxes, invalid aspect ratios, and tiny detections.
+        """
+        if not detections:
+            return []
+
+        h_img, w_img = img_shape[:2]
+        img_area = w_img * h_img
+        
+        # 1. Filter by valid classes and minimum size
+        stage1 = []
+        removed_small = 0
+        removed_aspect = 0
+        removed_invalid_class = 0
+
+        for d in detections:
+            x1, y1, w, h, conf, cls_id = d
+            
+            # A. Class Validation
+            if cls_id not in VEHICLE_CLASSES:
+                removed_invalid_class += 1
+                continue
+
+            # B. Area Filter (normalized w, h)
+            # Area ratio = w * h (since they are 0..1)
+            area_ratio = w * h
+            if area_ratio < 0.002:  # 0.2% — covers small aerial vehicles
+                removed_small += 1
+                continue
+            
+            # C. Aspect Ratio Validation
+            # Aspect = width / height. Vehicles are usually wider than tall or roughly square.
+            # Avoid extreme vertical or horizontal strips.
+            if h > 0:
+                aspect = w / h
+                if not (0.3 <= aspect <= 6.0): # 0.3 covers portrait/square aerial cars
+                    removed_aspect += 1
+                    continue
+            
+            stage1.append(d)
+
+        # 2. Nested Box Suppression (Remove boxes inside other boxes)
+        stage1.sort(key=lambda x: x[4], reverse=True)  # Sort by confidence
+        final_list = []
+        removed_nested = 0
+
+        for i, box_a in enumerate(stage1):
+            is_nested = False
+            ax1, ay1, aw, ah = box_a[:4]
+            ax2, ay2 = ax1 + aw, ay1 + ah
+            
+            for j, box_b in enumerate(final_list):
+                bx1, by1, bw, bh = box_b[:4]
+                bx2, by2 = bx1 + bw, by1 + bh
+                
+                # Check if A is inside B
+                # A is inside B if its bounds are within B's bounds
+                if ax1 >= bx1 - 0.02 and ay1 >= by1 - 0.02 and ax2 <= bx2 + 0.02 and ay2 <= by2 + 0.02:
+                    is_nested = True
+                    removed_nested += 1
+                    break
+            
+            if not is_nested:
+                final_list.append(box_a)
+
+        logger.info(
+            "[PostProcess] Raw=%d | Filtered: nested=%d small=%d aspect=%d invalid_cls=%d | Final=%d",
+            len(detections), removed_nested, removed_small, removed_aspect, removed_invalid_class, len(final_list)
+        )
+        
+        # Debug Log individual detections if count is low but was high
+        if len(detections) > 1 and len(final_list) == 1:
+            logger.debug("[PostProcess] Suppression Success: Merged %d detections into 1 vehicle.", len(detections))
+
+        return final_list
 
     def _classify_vehicles(self, detections: list) -> dict:
         counts = {v: 0 for v in VEHICLE_CLASSES.values()}

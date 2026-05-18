@@ -224,9 +224,13 @@ class InferenceEngine:
     # ── Public Detection Methods ──────────────────────────────────────────────
 
     def detect_vehicles(self, frame: np.ndarray) -> list:
+        # Adaptive confidence: lower threshold for dark images
+        mean_brightness = np.mean(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+        adaptive_conf = VEHICLE_CONFIDENCE_THRESHOLD if mean_brightness > 80 else max(VEHICLE_CONFIDENCE_THRESHOLD * 0.75, 0.25)
+        
         return self._yolo_detect(
             "_yolo_vehicle", VEHICLE_MODEL_PATH, frame,
-            conf=VEHICLE_CONFIDENCE_THRESHOLD, model_name="Vehicle",
+            conf=adaptive_conf, model_name="Vehicle",
         )
 
     def detect_license_plate(self, frame: np.ndarray) -> list:
@@ -246,9 +250,13 @@ class InferenceEngine:
         C1 FIX: crowd_detection_model.onnx is NOW ACTIVE.
         Class IDs are remapped via CROWD_TO_VEHICLE_CLASS to prevent collisions.
         """
+        # Adaptive confidence: lower threshold for dark images
+        mean_brightness = np.mean(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+        adaptive_conf = CROWD_CONFIDENCE_THRESHOLD if mean_brightness > 80 else max(CROWD_CONFIDENCE_THRESHOLD * 0.75, 0.25)
+
         raw = self._yolo_detect(
             "_yolo_crowd", CROWD_MODEL_PATH, frame,
-            conf=CROWD_CONFIDENCE_THRESHOLD, model_name="Crowd",
+            conf=adaptive_conf, model_name="Crowd",
         )
         mapped = []
         for det in raw:

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   HiX, HiInformationCircle, HiClipboardList, HiPencilAlt, 
-  HiSave, HiRefresh, HiChevronRight, HiExclamation 
+  HiSave, HiRefresh, HiChevronRight, HiExclamation, HiDownload
 } from 'react-icons/hi';
 import { FaCar, FaMotorcycle, FaTruck } from 'react-icons/fa';
 import { parkingApi, cameraApi } from '../services/parking';
@@ -90,6 +90,46 @@ export default function SlotModal({ slot, onClose, onUpdate }) {
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDownloadReceipt = () => {
+    const activeLog = logs[0] || {};
+    const entryTime = activeLog.entry_time || slot.updated_at || new Date();
+    const plate = slot.license_plate || 'N/A';
+    
+    // Simple fee calc for operator preview
+    const start = new Date(entryTime);
+    const now = new Date();
+    const diffMs = now - start;
+    const hours = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60)));
+    const currentFee = hours * 5000; // Standard rate
+
+    const receiptText = `
+========================================
+       SMARTPARK AI - OPERATOR
+========================================
+ID      : TRX-${slot.id.toString().slice(-6).toUpperCase()}
+PLAT    : ${plate}
+SLOT    : ${slot.slot_number}
+ZONE    : ${slot.zone}
+
+ENTRY   : ${new Date(entryTime).toLocaleString()}
+NOW     : ${new Date().toLocaleString()}
+----------------------------------------
+EST. FEE: Rp ${currentFee.toLocaleString()}
+----------------------------------------
+   ISSUED BY PARKING OPERATOR
+========================================
+    `;
+    const blob = new Blob([receiptText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Operator_Receipt_${plate}_${slot.slot_number}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Format date helper
@@ -378,6 +418,20 @@ export default function SlotModal({ slot, onClose, onUpdate }) {
                   </div>
                 )}
               </div>
+
+              {/* Receipt Action (Only for Occupied/Reserved) */}
+              {(slot.status === 'occupied' || slot.status === 'reserved') && !editMode && (
+                <div className="mt-3">
+                  <button
+                    onClick={handleDownloadReceipt}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95"
+                  >
+                    <HiDownload className="text-lg" />
+                    Download Current Receipt
+                  </button>
+                  <p className="text-[9px] text-slate-400 text-center mt-2 font-medium">Generate a proof of parking for this vehicle.</p>
+                </div>
+              )}
             </div>
           )}
 

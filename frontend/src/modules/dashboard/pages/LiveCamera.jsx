@@ -149,27 +149,27 @@ const LiveCamera = () => {
   const drawBoxes = useCallback((boxes, isViolation = false) => {
     const canvas = canvasRef.current;
     const media = previewRef.current || videoRef.current;
-    if (!canvas) return;
+    if (!canvas || !media) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!boxes?.length || !media) return;
+    if (!boxes?.length) return;
 
-    const scaleX = canvas.width;
-    const scaleY = canvas.height;
+    // ISSUE 1 FIX: Use true rendered dimensions of the media element
+    const renderW = canvas.width;
+    const renderH = canvas.height;
 
     boxes.forEach(([x, y, w, h, confidence, classId]) => {
       if ((confidence ?? 1) < 0.20) return;
 
-      // Use VEHICLE_COLORS per class, red for violation
       const isViol = isViolation || classId === undefined;
       const color = isViol ? VEHICLE_COLORS['violation'] : (VEHICLE_COLORS[classId] ?? '#22c55e');
       const label = isViol ? 'VIOLATION' : (VEHICLE_LABELS[classId] || 'VEHICLE');
 
-      // Bounding box
+      // Bounding box - coordinate normalization (0..1) * rendered size
       ctx.strokeStyle = color;
       ctx.lineWidth = 2.5;
       ctx.setLineDash([]);
-      ctx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+      ctx.strokeRect(x * renderW, y * renderH, w * renderW, h * renderH);
 
       // Label background
       ctx.fillStyle = color;
@@ -177,8 +177,8 @@ const LiveCamera = () => {
       const confPct = confidence ? `${(confidence * 100).toFixed(0)}%` : '';
       const text = `${label} ${confPct}`;
       const textWidth = ctx.measureText(text).width;
-      const bx = x * scaleX;
-      const by = y * scaleY;
+      const bx = x * renderW;
+      const by = y * renderH;
       ctx.fillRect(bx, by - 20, textWidth + 10, 20);
 
       // Label text
@@ -187,31 +187,53 @@ const LiveCamera = () => {
     });
   }, []);
 
-  // Sync canvas size to media element via ResizeObserver
+  // ISSUE 1 FIX: Sync canvas size to media element's RENDERED size via ResizeObserver
   useEffect(() => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     const preview = previewRef.current;
     if (!canvas) return;
 
+    const syncSize = (el) => {
+      if (!el) return;
+
+      // Use ONE coordinate system: getBoundingClientRect for everything.
+      // This is zoom-stable because both size AND position
+      // are derived from the same viewport-relative measurement.
+      const mediaRect = el.getBoundingClientRect();
+      const containerRect = canvas.parentElement.getBoundingClientRect();
+
+      const relLeft = mediaRect.left - containerRect.left;
+      const relTop = mediaRect.top - containerRect.top;
+
+      // Canvas internal resolution = actual rendered pixels of the media element
+      canvas.width = mediaRect.width;
+      canvas.height = mediaRect.height;
+
+      // Canvas CSS position = media position relative to its parent container
+      canvas.style.position = 'absolute';
+      canvas.style.left = `${relLeft}px`;
+      canvas.style.top = `${relTop}px`;
+      canvas.style.width = `${mediaRect.width}px`;
+      canvas.style.height = `${mediaRect.height}px`;
+      canvas.style.pointerEvents = 'none';
+
+      if (trafficData?.boxes) {
+        drawBoxes(trafficData.boxes);
+      }
+    };
+
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        canvas.width = entry.contentRect.width;
-        canvas.height = entry.contentRect.height;
-        // Redraw boxes immediately after resizing clears the canvas
-        if (trafficData?.boxes) {
-          drawBoxes(trafficData.boxes);
-        }
+        syncSize(entry.target);
       }
     });
 
     if (video) observer.observe(video);
     if (preview) observer.observe(preview);
 
-    // Initial draw if we already have data
-    if (trafficData?.boxes) {
-      setTimeout(() => drawBoxes(trafficData.boxes), 100);
-    }
+    const initialMedia = preview || video;
+    if (initialMedia) syncSize(initialMedia);
 
     return () => observer.disconnect();
   }, [activeTab, sourceMode, previewUrl, trafficData, drawBoxes]);
@@ -1012,11 +1034,11 @@ const LiveCamera = () => {
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                       </div>
                     ) : null}
-                    <video ref={videoRef} className="w-full h-full object-cover" muted autoPlay playsInline />
-                    {/* Canvas overlay for bounding boxes — transparent, sits over the video */}
+                    <video ref={videoRef} className="w-full h-full object-contain" muted autoPlay playsInline />
+                    {/* Canvas overlay - locked to video element pixels */}
                     <canvas
                       ref={canvasRef}
-                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      className="absolute pointer-events-none z-10"
                       style={{ background: 'transparent' }}
                     />
                   </>
@@ -1230,7 +1252,7 @@ const LiveCamera = () => {
                     )}
                     <canvas
                       ref={canvasRef}
-                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      className="absolute pointer-events-none z-10"
                     />
 
                     {/* Overlay stats for 'done' status */}

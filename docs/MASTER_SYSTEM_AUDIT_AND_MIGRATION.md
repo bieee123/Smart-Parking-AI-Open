@@ -20,8 +20,6 @@ Sistem akan secara otomatis menentukan sumber data untuk seluruh halaman:
 2. **PLAYBACK MODE**: Jika tidak ada live stream, sistem mengambil data agregat terakhir dari hasil pemrosesan video di database.
 3. **IDLE MODE**: Jika tidak ada sumber, menampilkan "Waiting for Source".
 
-
-
 ---
 
 ## B. FRONTEND (PER PAGE BREAKDOWN)
